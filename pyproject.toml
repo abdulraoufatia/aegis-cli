@@ -71,11 +71,11 @@ dev = [
 aegis = "aegis.cli.main:cli"
 
 [project.urls]
-Homepage = "https://github.com/aegis-cli/aegis-cli"
-Repository = "https://github.com/aegis-cli/aegis-cli"
-Issues = "https://github.com/aegis-cli/aegis-cli/issues"
-Changelog = "https://github.com/aegis-cli/aegis-cli/blob/main/CHANGELOG.md"
-Security = "https://github.com/aegis-cli/aegis-cli/blob/main/SECURITY.md"
+Homepage = "https://github.com/abdulraoufatia/aegis-cli"
+Repository = "https://github.com/abdulraoufatia/aegis-cli"
+Issues = "https://github.com/abdulraoufatia/aegis-cli/issues"
+Changelog = "https://github.com/abdulraoufatia/aegis-cli/blob/main/CHANGELOG.md"
+Security = "https://github.com/abdulraoufatia/aegis-cli/blob/main/SECURITY.md"
 
 # ---------------------------------------------------------------------------
 # Tool configuration

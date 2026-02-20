@@ -2,7 +2,7 @@
 
 > **Remote interactive prompt relay for AI CLI tools.**
 
-[![CI](https://github.com/aegis-cli/aegis-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/aegis-cli/aegis-cli/actions/workflows/ci.yml)
+[![CI](https://github.com/abdulraoufatia/aegis-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/abdulraoufatia/aegis-cli/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](CHANGELOG.md)
@@ -90,7 +90,7 @@ pip install aegis-cli
 Or from source:
 
 ```bash
-git clone https://github.com/aegis-cli/aegis-cli.git
+git clone https://github.com/abdulraoufatia/aegis-cli.git
 cd aegis-cli
 pip install -e ".[dev]"
 ```
@@ -241,7 +241,7 @@ aegis/
 
 ```bash
 # Clone and set up
-git clone https://github.com/aegis-cli/aegis-cli.git
+git clone https://github.com/abdulraoufatia/aegis-cli.git
 cd aegis-cli
 uv venv && uv pip install -e ".[dev]"
 source .venv/bin/activate
