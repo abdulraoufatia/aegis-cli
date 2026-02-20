@@ -1,0 +1,59 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for Aegis
+title: "feat: <short description>"
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for your feature idea! Please describe it as clearly as possible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What is the current pain point?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How would you like this feature to work? Include CLI UX if applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative approaches?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature Area
+      options:
+        - CLI / UX
+        - Approval Channel (Telegram)
+        - Approval Channel (WhatsApp)
+        - Policy Engine
+        - Tool Interception
+        - Audit Log
+        - Security Hardening
+        - Doctor / Diagnostics
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: This feature aligns with Aegis's security-first, local-first principles
+          required: true

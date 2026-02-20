@@ -1,0 +1,31 @@
+name: Security Advisory Notice
+description: Use ONLY to reference a security advisory already reported via private channels
+title: "[SECURITY] <brief description>"
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## STOP — Read Before Continuing
+
+        **Do NOT report vulnerability details in this public form.**
+
+        To report a security vulnerability, use one of these **private** channels:
+        - [GitHub Private Vulnerability Reporting](../../security/advisories/new)
+        - Email: security@aegis-cli.dev
+
+        This issue template is ONLY for referencing an already-processed advisory.
+
+  - type: input
+    id: advisory-id
+    attributes:
+      label: Advisory ID (if assigned)
+      placeholder: "GHSA-xxxx-xxxx-xxxx"
+
+  - type: textarea
+    id: public-description
+    attributes:
+      label: Public Summary (no sensitive details)
+      description: Brief public-safe description only. No exploit details.
+    validations:
+      required: true

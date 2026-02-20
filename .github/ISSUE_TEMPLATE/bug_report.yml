@@ -1,0 +1,94 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in Aegis
+title: "fix: <short description>"
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please fill out this form as completely as possible.
+        **Do not report security vulnerabilities here.** See [SECURITY.md](../../SECURITY.md).
+
+  - type: input
+    id: version
+    attributes:
+      label: Aegis Version
+      placeholder: "e.g. 0.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      placeholder: "e.g. 3.11.7"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: "e.g. macOS 14.3, Ubuntu 22.04"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Run `aegis ...`
+        2. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor-output
+    attributes:
+      label: Doctor Output
+      description: Paste the output of `aegis doctor --json` (sanitize any secrets)
+      render: json
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Paste relevant logs (sanitize any secrets/tokens)
+      render: shell
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I have sanitized all secrets/tokens from my report
+          required: true
+        - label: This is not a security vulnerability (see SECURITY.md)
+          required: true
