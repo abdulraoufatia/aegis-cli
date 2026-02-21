@@ -130,6 +130,8 @@ def _maybe_install_systemd(console: Console, config_path: str) -> None:
     """Offer to install the systemd user service on Linux."""
     if not shutil.which("systemctl"):
         return
+    if not sys.stdin.isatty():
+        return  # Not a real interactive terminal — skip the prompt
 
     from aegis.os.systemd.service import (
         enable_service,
