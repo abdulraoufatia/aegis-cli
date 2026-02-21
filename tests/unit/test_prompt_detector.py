@@ -1,4 +1,4 @@
-"""Unit tests for aegis.core.prompt.detector — PromptDetector tri-signal detection."""
+"""Unit tests for atlasbridge.core.prompt.detector — PromptDetector tri-signal detection."""
 
 from __future__ import annotations
 

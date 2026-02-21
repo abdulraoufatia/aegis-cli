@@ -43,7 +43,7 @@ Do NOT frame these as "security features" in docs or code comments. They are cor
 ## Repository layout
 
 ```
-src/aegis/               ← new source layout (v0.2.0+)
+src/atlasbridge/         ← installed package (where = ["src"])
   core/
     prompt/              — detector.py, state.py, models.py
     session/             — models.py, manager.py
@@ -53,10 +53,10 @@ src/aegis/               ← new source layout (v0.2.0+)
     daemon/              — manager.py (orchestrates everything)
     scheduler/           — TTL sweeper (future)
   os/tty/                — base.py, macos.py, linux.py, windows.py
-  adapters/              — base.py, claude_code.py, openai_cli.py
-  channels/              — base.py, telegram/channel.py, slack/channel.py
+  os/systemd/            — service.py (Linux systemd user service)
+  adapters/              — base.py, claude_code.py, openai_cli.py, gemini_cli.py
+  channels/              — base.py, multi.py, telegram/channel.py, slack/channel.py
   cli/                   — main.py + _setup/_daemon/_run/_status/etc.
-aegis/                   ← legacy root layout (pre-v0.2.0, kept for transition)
 tests/
   unit/                  — pure unit tests (no I/O)
   integration/           — SQLite + mocked HTTP
@@ -69,25 +69,28 @@ docs/                    — all design documents
 
 ---
 
-## Key files (new src/ layout)
+## Key files
 
 | Path | Purpose |
 |------|---------|
-| `src/aegis/cli/main.py` | All CLI commands (Click group) |
-| `src/aegis/core/prompt/detector.py` | Tri-signal prompt detector |
-| `src/aegis/core/prompt/models.py` | PromptEvent, Reply, PromptType, Confidence |
-| `src/aegis/core/prompt/state.py` | PromptStateMachine, VALID_TRANSITIONS |
-| `src/aegis/core/routing/router.py` | PromptRouter (forward + return path) |
-| `src/aegis/core/session/manager.py` | SessionManager (in-memory registry) |
-| `src/aegis/core/store/database.py` | SQLite WAL store + decide_prompt() guard |
-| `src/aegis/core/audit/writer.py` | Hash-chained audit event writer |
-| `src/aegis/core/daemon/manager.py` | DaemonManager (top-level orchestrator) |
-| `src/aegis/os/tty/base.py` | BaseTTY abstract PTY supervisor |
-| `src/aegis/os/tty/macos.py` | MacOSTTY (ptyprocess) |
-| `src/aegis/adapters/base.py` | BaseAdapter ABC + AdapterRegistry |
-| `src/aegis/adapters/claude_code.py` | ClaudeCodeAdapter |
-| `src/aegis/channels/base.py` | BaseChannel ABC |
-| `src/aegis/channels/telegram/channel.py` | TelegramChannel (httpx, long-poll) |
+| `src/atlasbridge/cli/main.py` | All CLI commands (Click group) |
+| `src/atlasbridge/core/prompt/detector.py` | Tri-signal prompt detector |
+| `src/atlasbridge/core/prompt/models.py` | PromptEvent, Reply, PromptType, Confidence |
+| `src/atlasbridge/core/prompt/state.py` | PromptStateMachine, VALID_TRANSITIONS |
+| `src/atlasbridge/core/routing/router.py` | PromptRouter (forward + return path) |
+| `src/atlasbridge/core/session/manager.py` | SessionManager (in-memory registry) |
+| `src/atlasbridge/core/store/database.py` | SQLite WAL store + decide_prompt() guard |
+| `src/atlasbridge/core/audit/writer.py` | Hash-chained audit event writer |
+| `src/atlasbridge/core/daemon/manager.py` | DaemonManager (top-level orchestrator) |
+| `src/atlasbridge/os/tty/base.py` | BaseTTY abstract PTY supervisor |
+| `src/atlasbridge/os/tty/macos.py` | MacOSTTY (ptyprocess) |
+| `src/atlasbridge/os/systemd/service.py` | Linux systemd user service integration |
+| `src/atlasbridge/adapters/base.py` | BaseAdapter ABC + AdapterRegistry |
+| `src/atlasbridge/adapters/claude_code.py` | ClaudeCodeAdapter |
+| `src/atlasbridge/channels/base.py` | BaseChannel ABC |
+| `src/atlasbridge/channels/telegram/channel.py` | TelegramChannel (httpx, long-poll) |
+| `src/atlasbridge/channels/slack/channel.py` | SlackChannel (Socket Mode + Block Kit) |
+| `src/atlasbridge/channels/multi.py` | MultiChannel fan-out |
 | `tests/prompt_lab/simulator.py` | Simulator, TelegramStub, PTYSimulator |
 
 ---
@@ -95,7 +98,7 @@ docs/                    — all design documents
 ## Architecture: data flow
 
 ```
-aegis run claude
+atlasbridge run claude
     │
     ▼
 DaemonManager                  ← orchestrates all subsystems
@@ -134,46 +137,42 @@ CREATED → ROUTED → AWAITING_REPLY → REPLY_RECEIVED → INJECTED → RESOLV
 # Install
 pip install -e ".[dev]"   # or: uv pip install -e ".[dev]"
 
-# Run all tests (old package)
-pytest tests/ -v
+# Run all tests
+pytest tests/ -q
 
 # Run a specific test file
-pytest tests/unit/test_detector.py -v
+pytest tests/unit/test_prompt_detector.py -v
 
 # Run Prompt Lab scenarios (via CLI)
-aegis lab list
-aegis lab run partial-line-prompt
-aegis lab run --all
-
-# Run Prompt Lab via pytest (when implemented)
-pytest tests/prompt_lab/ -v
+atlasbridge lab list
+atlasbridge lab run partial-line-prompt
+atlasbridge lab run --all
 
 # Lint and format
 ruff check . && ruff format --check .
 
-# Type check (new src package)
-mypy src/aegis/
+# Type check
+mypy src/atlasbridge/
 
 # Full CI equivalent (local)
-ruff check . && ruff format --check . && pytest tests/ --cov=aegis
+ruff check . && ruff format --check . && mypy src/atlasbridge/ && pytest tests/ --cov=atlasbridge
 ```
 
 ---
 
 ## CI pipeline
 
-1. **Security Scan** — bandit on `src/` and `aegis/`
-2. **Lint + Type Check** — ruff check, ruff format --check, mypy
-3. **Tests** — pytest on Python 3.11 + 3.12, macOS + ubuntu
-4. **Build** — twine check
-5. **Prompt Lab** — `atlasbridge lab run --all` (gating gate, v0.2.0+)
+1. **CLI Smoke Tests** — verifies all 14 subcommands exist (gates everything)
+2. **Security Scan** — bandit on `src/`
+3. **Lint + Type Check** — ruff check, ruff format --check, mypy src/atlasbridge/
+4. **Tests** — pytest on Python 3.11 + 3.12, macOS + ubuntu
+5. **Build** — twine check
 
 ---
 
 ## Branching model
 
 - `main` — always releasable; only tagged releases land here
-- `design/v0.1.0-release` — v0.1.0 design release (current)
 - `feature/*` — feature development
 - `fix/*` — bug fixes
 - Conventional commits: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`
@@ -181,20 +180,25 @@ ruff check . && ruff format --check . && pytest tests/ --cov=aegis
 
 ---
 
-## Current scope (v0.1.0 design release)
+## Config paths
 
-- Architecture and design documents (all in `docs/`)
-- Source code stubs (all in `src/aegis/`)
-- Prompt Lab simulator infrastructure
-- No working end-to-end relay yet — that's v0.2.0 (macOS MVP)
+| Platform | Default config directory |
+|----------|--------------------------|
+| macOS | `~/Library/Application Support/atlasbridge/` |
+| Linux | `$XDG_CONFIG_HOME/atlasbridge/` (default `~/.config/atlasbridge/`) |
+| Other | `~/.atlasbridge/` |
+
+Override with `ATLASBRIDGE_CONFIG` env var. Legacy `AEGIS_CONFIG` is also honoured.
+
+---
 
 ## Roadmap
 
-| Version | Target | Key deliverable |
-|---------|--------|----------------|
-| v0.1.0 | Design | Architecture docs + code stubs |
-| v0.2.0 | macOS  | Working Telegram relay for Claude Code |
-| v0.3.0 | Linux  | Linux PTY (same ptyprocess backend) |
-| v0.4.0 | Slack  | Slack channel, multi-channel routing |
-| v0.5.0 | Windows | ConPTY experimental |
-| v1.0.0 | GA | Stable adapter + channel API |
+| Version | Target | Status | Key deliverable |
+|---------|--------|--------|----------------|
+| v0.1.0 | Design | Released | Architecture docs + code stubs |
+| v0.2.0 | macOS  | Released | Working Telegram relay for Claude Code |
+| v0.3.0 | Linux  | Released | Linux PTY, systemd integration |
+| v0.4.0 | Slack  | Released | Slack channel, multi-channel routing, renamed to AtlasBridge |
+| v0.5.0 | Windows | Planned | ConPTY experimental |
+| v1.0.0 | GA | Planned | Stable adapter + channel API |

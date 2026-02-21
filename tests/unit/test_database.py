@@ -1,4 +1,4 @@
-"""Unit tests for aegis.core.store.database — Database CRUD and decide_prompt guard."""
+"""Unit tests for atlasbridge.core.store.database — Database CRUD and decide_prompt guard."""
 
 from __future__ import annotations
 

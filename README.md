@@ -202,6 +202,40 @@ ruff check . && ruff format --check . && mypy src/atlasbridge/ && pytest tests/ 
 
 ---
 
+## Troubleshooting
+
+**Wrong binary in PATH?**
+
+```bash
+atlasbridge version --verbose
+```
+
+This shows the exact install path, config path, Python version, and platform — useful for detecting stale installs or multiple versions.
+
+**`atlasbridge: command not found` after `pip install`**
+
+Ensure your Python scripts directory is on PATH:
+
+```bash
+python3 -m site --user-scripts   # shows user scripts dir
+# or for venv:
+which atlasbridge
+```
+
+**Config not found**
+
+```bash
+atlasbridge doctor
+```
+
+Shows where AtlasBridge expects its config file. Run `atlasbridge setup` to create it.
+
+**Upgrading from Aegis?**
+
+AtlasBridge automatically migrates `~/.aegis/config.toml` on first run. Your tokens and settings are preserved.
+
+---
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). All contributions require:

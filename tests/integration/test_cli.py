@@ -1,5 +1,5 @@
 """
-Integration tests for the Aegis CLI (Click runner).
+Integration tests for the AtlasBridge CLI (Click runner).
 
 These tests exercise the full CLI stack without external services.
 """

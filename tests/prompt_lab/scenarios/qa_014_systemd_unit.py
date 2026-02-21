@@ -19,8 +19,8 @@ class SystemdUnitScenario(LabScenario):
 
     async def setup(self, pty: PTYSimulator, stub: TelegramStub) -> None:
         unit = generate_unit_file(
-            exec_path="/usr/local/bin/aegis",
-            config_path="/home/user/.aegis/config.toml",
+            exec_path="/usr/local/bin/atlasbridge",
+            config_path="/home/user/.config/atlasbridge/config.toml",
         )
 
         # Required sections
@@ -29,9 +29,9 @@ class SystemdUnitScenario(LabScenario):
         assert "[Install]" in unit, "Missing [Install] section"
 
         # Required directives
-        assert "ExecStart=/usr/local/bin/aegis" in unit, "ExecStart must reference exec_path"
-        assert "AEGIS_CONFIG=/home/user/.aegis/config.toml" in unit, (
-            "Environment must set AEGIS_CONFIG"
+        assert "ExecStart=/usr/local/bin/atlasbridge" in unit, "ExecStart must reference exec_path"
+        assert "ATLASBRIDGE_CONFIG=/home/user/.config/atlasbridge/config.toml" in unit, (
+            "Environment must set ATLASBRIDGE_CONFIG"
         )
         assert "Restart=on-failure" in unit, "Service must restart on failure"
         assert "WantedBy=default.target" in unit, "Service must be enabled for user sessions"

@@ -1,4 +1,4 @@
-"""Unit tests for aegis.core.routing.router — PromptRouter forward/return paths."""
+"""Unit tests for atlasbridge.core.routing.router — PromptRouter forward/return paths."""
 
 from __future__ import annotations
 
