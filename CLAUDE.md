@@ -276,5 +276,6 @@ Policy module layout:
 | v0.8.2 | UX | Released | Redesigned Telegram + Slack prompt messages with structured layout |
 | v0.8.3 | Enterprise | Released | Enterprise architecture foundation — Phase A scaffold + Phase B/C specs |
 | v0.8.4 | Stability | Released | Core product stability fixes — adapter resilience, Telegram error handling, doctor/setup/run UX |
+| v0.8.5 | Phase 1 Kernel | Released | Phase 1 Core Runtime Kernel — all exit criteria pass, 677 tests, doctor DB+adapter checks |
 | v0.9.0 | Windows | Planned | ConPTY experimental (behind --experimental flag) |
 | v1.0.0 | GA | Planned | Stable adapter + channel API, all platforms, all agents |

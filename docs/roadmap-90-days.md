@@ -1,6 +1,6 @@
 # AtlasBridge Roadmap
 
-**Version:** 0.8.4
+**Version:** 0.8.5
 **Status:** Active
 **Last updated:** 2026-02-21
 
@@ -47,6 +47,7 @@ The positioning is settled: **policy-driven autonomous runtime for AI CLI agents
 | v0.8.2 | Redesigned Telegram + Slack prompt messages with structured layout | Released |
 | v0.8.3 | Enterprise architecture foundation — Phase A scaffold + Phase B/C specs | Released |
 | v0.8.4 | Core product stability fixes — adapter resilience, Telegram error handling, UX | Released |
+| v0.8.5 | Phase 1 Core Runtime Kernel — all exit criteria pass | Released |
 
 ### v0.7.1 — Policy Engine Hardening (Released)
 
@@ -129,6 +130,21 @@ The positioning is settled: **policy-driven autonomous runtime for AI CLI agents
 - **On-screen run instructions** — `atlasbridge run` prints how-it-works summary, channel info, and useful commands
 - **New documentation** — `telegram-setup.md`, `troubleshooting.md`, `upgrade.md`; docs index updated
 - **22 regression tests** — adapter discovery, Telegram errors, stale reply handling, doctor paths, setup detection, poller lock
+
+### v0.8.5 — Phase 1 Core Runtime Kernel (Released)
+
+**Theme:** Complete all Phase 1 exit criteria — fresh install, upgrade safety, deterministic subsystems, clean output.
+
+**Delivered:**
+
+- **Doctor database check** — `atlasbridge doctor` validates SQLite schema version via `PRAGMA user_version` and reports pass/warn/fail
+- **Doctor adapter check** — verifies adapter registry has at least one registered adapter
+- **`atlasbridge db info` command** — shows database path, schema version, file size, and per-table row counts; supports `--json` output
+- **`datetime.utcnow()` eliminated** — `PromptStateMachine` uses `datetime.now(UTC)`; zero deprecation warnings
+- **Python 3.14 test compatibility** — 8 tests converted from `asyncio.get_event_loop().run_until_complete()` to `@pytest.mark.asyncio` async methods
+- **Phase 1 kernel test suite** — 17 new tests covering fresh install (DB + indexes + CRUD), upgrade safety (auto-migration + data preservation + idempotency), adapter registry (registration + error messages + required attributes), prompt correlation (stable IDs + nonce guard + expiry guard), doctor checks, and deprecation freedom
+- **Smoke test script** — `scripts/smoke_test_phase1.sh` validates all exit criteria in one run
+- **677 tests passing** — zero failures, zero deprecation warnings, lint clean
 
 ---
 
@@ -260,6 +276,7 @@ Under high-volume output (100k+ lines/session), `PromptDetector.detect()` could 
 | v0.8.2 | Redesigned prompt messages | Released |
 | v0.8.3 | Enterprise architecture foundation | Released |
 | v0.8.4 | Core product stability fixes | Released |
+| v0.8.5 | Phase 1 Core Runtime Kernel | Released |
 | v0.9.0 | Windows ConPTY (experimental) | Planned |
 | v1.0.0 | GA — stable, multi-platform, multi-agent | Planned |
 
