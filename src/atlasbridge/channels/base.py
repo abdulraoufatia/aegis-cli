@@ -90,7 +90,7 @@ class BaseChannel(ABC):
         cb = getattr(self, "_circuit_breaker", None)
         if cb is None:
             cb = ChannelCircuitBreaker()
-            self._circuit_breaker = cb  # type: ignore[attr-defined]
+            self._circuit_breaker = cb
         return cb
 
     # ------------------------------------------------------------------
