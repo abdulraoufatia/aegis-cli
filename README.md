@@ -42,15 +42,16 @@ Requires Python 3.11+. Works on macOS and Linux.
 
 ## Quick start
 
-### Option A — Interactive TUI (v0.5.0+)
+### Option A — Interactive Mode (v0.5.0+)
 
 Run `atlasbridge` with no arguments in your terminal to launch the interactive control panel:
 
 ```bash
-atlasbridge
+atlasbridge          # auto-launches TUI when stdout is a TTY
+atlasbridge ui       # explicit TUI launch
 ```
 
-The TUI guides you through setup, shows live status, and provides quick access to sessions, logs, and doctor checks — all in your terminal.
+The interactive UI guides you through setup, shows live status, and provides quick access to sessions, logs, and doctor checks — all in your terminal.
 
 ```
 ┌─ AtlasBridge ──────────────────────────────────────────────────────┐
