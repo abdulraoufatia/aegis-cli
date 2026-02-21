@@ -1,0 +1,147 @@
+# Documentation Index
+
+This directory contains all design documents, reference guides, and operational documentation for AtlasBridge — a policy-driven autonomous runtime for AI CLI agents.
+
+This index helps you find the right document fast, whether you are a new user, a policy author, or a contributor.
+
+---
+
+## Quick Start: Where Do I Begin?
+
+### A) Users — I just installed AtlasBridge
+
+1. [Channel Token Setup](channel-token-setup.md) — get Telegram or Slack credentials
+2. [Autonomy Modes](autonomy-modes.md) — understand Off / Assist / Full
+3. [Policy Authoring Guide](policy-authoring.md) — write your first policy
+4. [CLI UX](cli-ux.md) — learn the commands and TUI
+5. [Setup (Non-interactive)](setup-noninteractive.md) — headless / CI deployment
+
+### B) Power Users — writing policies and tuning autopilot
+
+1. [Policy DSL v0 Reference](policy-dsl.md) — full schema, evaluation semantics
+2. [Policy DSL v1 Extensions](policy-dsl-v1.md) — compound conditions, session tags, inheritance
+3. [Autopilot Engine](autopilot.md) — engine architecture, decision trace, kill switch
+4. [QA Top 20 Failure Scenarios](qa-top-20-failure-scenarios.md) — what can go wrong and how it is tested
+5. [Reliability](reliability.md) — PTY supervisor, failure modes, recovery
+
+### C) Contributors — I want to develop AtlasBridge
+
+1. [Architecture](architecture.md) — system design, data flow, invariants
+2. [CONTRIBUTING.md](../CONTRIBUTING.md) — fork/clone, branching, PR process
+3. [CLAUDE.md](../CLAUDE.md) — project context, repo layout, dev commands
+4. [Policy Engine Internals](policy-engine.md) — prompt detection and routing
+5. [Dev Workflow (Multi-Agent)](dev-workflow-multi-agent.md) — agent roles, branch ownership
+6. [Release Process](release.md) — tagging, TestPyPI, OIDC publishing
+7. [Roadmap](roadmap-90-days.md) — milestones and planned work
+
+---
+
+## Documentation Map
+
+| Document | Audience | What you'll learn | When to read it | Status |
+|----------|----------|-------------------|-----------------|--------|
+| [architecture.md](architecture.md) | Contributor | System design: PTY supervisor, tri-signal detection, state machine, routing, adapters, channels, audit, invariants | Before making structural changes | Current |
+| [autonomy-modes.md](autonomy-modes.md) | Both | The three operational modes (Off / Assist / Full) and when each applies | After install, before choosing a mode | Current |
+| [autopilot.md](autopilot.md) | Both | Autopilot engine architecture, policy evaluation flow, decision trace, kill switch | Before enabling autopilot | Current |
+| [adapters.md](adapters.md) | Contributor | BaseAdapter interface, contract spec, vendor-neutral philosophy | When writing or modifying an adapter | Current |
+| [approval-lifecycle.md](approval-lifecycle.md) | Contributor | Prompt approval state machine (CREATED → PENDING → APPROVED/DENIED/EXPIRED) | When working on prompt routing or approval logic | Current |
+| [channel-token-setup.md](channel-token-setup.md) | User | Step-by-step Telegram and Slack token acquisition | During first-time setup | Current |
+| [channels.md](channels.md) | Contributor | BaseChannel interface, multi-channel routing, extensibility | When writing or modifying a channel | Current |
+| [claude-adapter-spec.md](claude-adapter-spec.md) | Contributor | Claude Code adapter: launch model, three-layer detection, injection, prompt patterns | When debugging Claude Code integration | Current |
+| [cli-ux.md](cli-ux.md) | Both | CLI design principles, command overview, TUI behavior | When learning or extending CLI commands | Current |
+| [data-model.md](data-model.md) | Contributor | SQLite schema design, migration strategy, audit log schema | When modifying the database layer | Current |
+| [dev-workflow-multi-agent.md](dev-workflow-multi-agent.md) | Contributor | Multi-agent team structure, branch model, agent roles and ownership | When onboarding as a contributor | Current |
+| [policy-authoring.md](policy-authoring.md) | User | Quick start guide for writing policies: syntax, patterns, debugging, FAQ | When writing your first policy | Current |
+| [policy-dsl.md](policy-dsl.md) | Both | Full DSL v0 reference: schema, match fields, action types, regex safety, validation | When you need precise DSL semantics | Current |
+| [policy-dsl-v1.md](policy-dsl-v1.md) | Both | DSL v1 extensions: `any_of`/`none_of`, `session_tag`, `max_confidence`, `extends`, trace rotation | When using compound conditions or policy inheritance | Current |
+| [policy-engine.md](policy-engine.md) | Contributor | Prompt detection internals: structured / regex / blocking-heuristic layers, routing dispatch | When debugging prompt detection or routing | Current |
+| [qa-top-20-failure-scenarios.md](qa-top-20-failure-scenarios.md) | Contributor | 20 canonical failure scenarios (QA-001 through QA-020), Prompt Lab, CI gating matrix | When writing tests or investigating failures | Current |
+| [red-team-report.md](red-team-report.md) | Contributor | Relay misuse analysis under original "firewall" framing; retained for implementation reference | For historical context on correctness invariants | Reference |
+| [release.md](release.md) | Contributor | Release process: tag patterns (rc vs stable), TestPyPI vs PyPI, version bumping, OIDC | When cutting a release | Current |
+| [reliability.md](reliability.md) | Both | Reliability philosophy, core invariants, failure modes, PTY supervisor architecture | When diagnosing PTY or prompt detection issues | Current |
+| [roadmap-90-days.md](roadmap-90-days.md) | Both | Project milestones from v0.1 through v1.0 | To understand project direction | Partially outdated (see note below) |
+| [setup-flow.md](setup-flow.md) | Contributor | Setup command design: flow diagram, pre-flight checks, config collection, validation | When modifying the setup wizard | Current |
+| [setup-noninteractive.md](setup-noninteractive.md) | User | Headless / CI deployment: env vars, `--from-env`, Docker example | When deploying without a TTY | Current |
+| [threat-model.md](threat-model.md) | Contributor | STRIDE-based relay correctness analysis, trust boundaries, threat scenarios | For correctness review or architecture audits | Current |
+| [tool-adapter.md](tool-adapter.md) | Contributor | Adapter abstraction design goals and interface (early design doc) | For historical context on adapter design decisions | Reference |
+| [tool-interception-design.md](tool-interception-design.md) | Contributor | Strategy analysis: wrapper vs PTY interception; rationale for PTY approach | For historical context on interception strategy | Reference |
+
+> **Note on roadmap-90-days.md:** This document lists v0.6.2 as the latest release. The project has since shipped through v0.8.1. Refer to `CLAUDE.md` for the up-to-date roadmap table.
+
+---
+
+## Key Concepts Glossary
+
+**Session** — A supervised run of an AI CLI tool (e.g., `atlasbridge run claude`). Each session has an isolated PTY, prompt state machine, and audit trail.
+
+**PromptEvent** — A detected prompt from the supervised tool. Contains the prompt text, type, confidence level, timestamps, and lifecycle state.
+
+**Prompt Types:**
+- **YES_NO** — Binary confirmation (e.g., "Continue? [y/n]")
+- **ENTER** — Press-enter-to-continue prompts
+- **CHOICE** — Multiple-choice selection
+- **TEXT** — Free-form text input
+
+**Channel** — A notification/communication backend (Telegram or Slack) used to relay prompts to humans and receive replies.
+
+**Adapter** — A vendor-specific wrapper that launches an AI CLI tool inside a PTY supervisor and implements prompt detection and reply injection (e.g., `ClaudeCodeAdapter`).
+
+**Autonomy Modes:**
+- **Off** — All prompts forwarded to human; no automatic decisions
+- **Assist** — Policy handles explicitly allowed prompts; all others escalated
+- **Full** — Policy auto-executes permitted prompts; no-match / low-confidence escalated safely
+
+**Policy DSL** — A YAML-based rule language for defining what the autopilot can do. v0 provides core match/action semantics; v1 adds compound conditions (`any_of`/`none_of`), session scoping (`session_tag`), confidence bounds (`max_confidence`), and policy inheritance (`extends`).
+
+**Escalation / Route-to-human** — When no policy rule matches, confidence is low, or a rule explicitly says `require_human`, the prompt is sent to a human via the configured channel.
+
+**Decision Trace** — An append-only JSONL log recording every autopilot decision: which rule matched, what action was taken, and why. Used for auditing and debugging (`atlasbridge autopilot explain`).
+
+**Audit Log** — A hash-chained, append-only event log recording all prompt lifecycle events. Separate from the decision trace; covers the full relay, not just autopilot.
+
+**Prompt Lab** — A deterministic QA simulator (`atlasbridge lab`) that replays scripted scenarios (QA-001 through QA-020) against the prompt detection and routing stack without real PTY or network I/O.
+
+**Top 20 Failure Scenarios** — The canonical set of failure modes (duplicate injection, expired prompts, echo loops, etc.) that define AtlasBridge's correctness guarantees. Each has a Prompt Lab scenario and CI gate.
+
+---
+
+## Troubleshooting Entry Points
+
+| Problem area | Where to look |
+|--------------|---------------|
+| Environment or config issues | Run `atlasbridge doctor --fix` and see [cli-ux.md](cli-ux.md) |
+| PTY or prompt detection failures | [reliability.md](reliability.md) — failure modes and recovery |
+| Policy not matching as expected | [policy-authoring.md](policy-authoring.md) — debugging section and FAQ |
+| Autopilot decisions look wrong | Run `atlasbridge autopilot explain --last 20` and see [autopilot.md](autopilot.md) |
+| Regression or known failure | [qa-top-20-failure-scenarios.md](qa-top-20-failure-scenarios.md) — canonical failure list |
+| Generating a support bundle | Run `atlasbridge debug bundle` — see [cli-ux.md](cli-ux.md) |
+| Channel token / connectivity | [channel-token-setup.md](channel-token-setup.md) |
+| Correctness invariant violated | [threat-model.md](threat-model.md) and [architecture.md](architecture.md) — invariants section |
+
+---
+
+## How Docs Stay Accurate
+
+- **Docs must match shipped behavior.** If a command or feature is documented, it must exist in the codebase. If it doesn't exist yet, the doc must clearly label it as **Planned**.
+- **Update docs alongside code.** Every PR that changes user-facing behavior should update the relevant docs in the same PR.
+- **Verify before documenting.** If you are unsure whether a command or flag exists, check `src/atlasbridge/cli/main.py` and the test suite before writing.
+- **Reference files:** [CLAUDE.md](../CLAUDE.md) is the canonical project context. [CONTRIBUTING.md](../CONTRIBUTING.md) covers the contribution workflow.
+
+---
+
+## Docs Conventions
+
+**Naming:** Lowercase, hyphen-separated (e.g., `policy-authoring.md`). Use descriptive names that match the topic.
+
+**Adding a new doc:**
+1. Create the file in `/docs/` following the naming convention.
+2. Add an entry to the Documentation Map table in this file.
+3. Include the doc in the appropriate Quick Start reading track if it is user-facing.
+
+**Examples and presets:** Policy examples live in `/config/policy.example.yaml` and `/config/policy.example_v1.yaml`. Ready-to-use policy presets live in `/config/policies/`.
+
+**Diagrams:** Use Mermaid fenced code blocks for flow diagrams and state machines. Keep diagrams close to the prose they illustrate.
+
+**Versioning:** Policy files use a `policy_version` field (currently `0` or `1`). When documenting version-specific behavior, state which version(s) apply.
+
+**Historical docs:** Early design documents (`tool-adapter.md`, `tool-interception-design.md`, `red-team-report.md`) are retained for context. They are marked as **Reference** in the Documentation Map and should not be treated as current specifications.
