@@ -158,7 +158,7 @@ class AdapterRegistry(metaclass=_AdapterRegistryMeta):
     """Global registry of available CLI adapters."""
 
     @classmethod
-    def register(cls, name: str):  # type: ignore[return]
+    def register(cls, name: str) -> Any:
         """Decorator: @AdapterRegistry.register("claude")"""
 
         def decorator(adapter_cls: type[BaseAdapter]) -> type[BaseAdapter]:

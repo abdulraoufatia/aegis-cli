@@ -86,14 +86,14 @@ class TelegramChannel(BaseChannel):
         self._offset = 0  # getUpdates offset
         self._running = False
         self._polling = False  # True only if we own the poll loop
-        self._client = None  # httpx.AsyncClient — created in start()
+        self._client: Any = None  # httpx.AsyncClient — created in start()
         self._command_callback = command_callback
         self._locks_dir = locks_dir
-        self._poller_lock = None  # PollerLock — created in start()
+        self._poller_lock: Any = None  # PollerLock — created in start()
 
     async def start(self) -> None:
         try:
-            import httpx  # type: ignore[import]
+            import httpx
         except ImportError as exc:
             raise RuntimeError(
                 "httpx is required for the Telegram channel. Install with: pip install httpx"
@@ -172,7 +172,7 @@ class TelegramChannel(BaseChannel):
                 },
             )
 
-    async def receive_replies(self) -> AsyncIterator[Reply]:  # type: ignore[override]
+    async def receive_replies(self) -> AsyncIterator[Reply]:
         while self._running:
             try:
                 reply = await asyncio.wait_for(self._reply_queue.get(), timeout=1.0)

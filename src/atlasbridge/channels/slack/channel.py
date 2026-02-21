@@ -64,13 +64,13 @@ class SlackChannel(BaseChannel):
         self._allowed: set[str] = set(allowed_user_ids)
         self._reply_queue: asyncio.Queue[Reply] = asyncio.Queue()
         self._running = False
-        self._client = None  # httpx.AsyncClient — created in start()
+        self._client: Any = None  # httpx.AsyncClient — created in start()
         self._dm_cache: dict[str, str] = {}  # user_id → DM channel_id
         self._command_callback = command_callback
 
     async def start(self) -> None:
         try:
-            import httpx  # type: ignore[import]
+            import httpx
         except ImportError as exc:
             raise RuntimeError(
                 "httpx is required for the Slack channel. Install with: pip install httpx"
@@ -133,7 +133,7 @@ class SlackChannel(BaseChannel):
             {"channel": ch_id, "ts": ts, "text": new_text, "blocks": []},
         )
 
-    async def receive_replies(self) -> AsyncIterator[Reply]:  # type: ignore[override]
+    async def receive_replies(self) -> AsyncIterator[Reply]:
         while self._running:
             try:
                 reply = await asyncio.wait_for(self._reply_queue.get(), timeout=1.0)
@@ -172,7 +172,7 @@ class SlackChannel(BaseChannel):
         button replies will not be received.
         """
         try:
-            from slack_sdk.socket_mode.websockets import SocketModeClient  # type: ignore[import]
+            from slack_sdk.socket_mode.websockets import SocketModeClient
         except ImportError:
             logger.warning(
                 "slack_sdk_missing",
@@ -180,7 +180,7 @@ class SlackChannel(BaseChannel):
             )
             return
 
-        from slack_sdk.socket_mode.response import SocketModeResponse  # type: ignore[import]
+        from slack_sdk.socket_mode.response import SocketModeResponse
 
         client = SocketModeClient(
             app_token=self._app_token,

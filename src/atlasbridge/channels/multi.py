@@ -122,7 +122,7 @@ class MultiChannel(BaseChannel):
     # Return path
     # ------------------------------------------------------------------
 
-    async def receive_replies(self) -> AsyncIterator[Reply]:  # type: ignore[override]
+    async def receive_replies(self) -> AsyncIterator[Reply]:
         """
         Merge reply streams from all sub-channels into one async iterator.
 

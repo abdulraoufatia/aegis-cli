@@ -46,10 +46,10 @@ class DaemonManager:
     def __init__(self, config: dict[str, Any]) -> None:
         self._config = config
         self._data_dir = Path(config.get("data_dir", str(_DEFAULT_DATA_DIR)))
-        self._db = None
-        self._channel = None
-        self._session_manager = None
-        self._router = None
+        self._db: Any = None
+        self._channel: Any = None
+        self._session_manager: Any = None
+        self._router: Any = None
         self._adapters: dict[str, Any] = {}
         self._running = False
         self._shutdown_event = asyncio.Event()
@@ -132,7 +132,7 @@ class DaemonManager:
 
     async def _init_channel(self) -> None:
         channel_config = self._config.get("channels", {})
-        channels = []
+        channels: list[Any] = []
 
         telegram_cfg = channel_config.get("telegram", {})
         if telegram_cfg:
