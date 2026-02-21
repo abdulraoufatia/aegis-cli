@@ -42,6 +42,7 @@ _NORMALISE: dict[str, dict[str, bytes]] = {
 
 
 @AdapterRegistry.register("claude")
+@AdapterRegistry.register("claude-code")
 class ClaudeCodeAdapter(BaseAdapter):
     """
     Adapter for the `claude` CLI (Claude Code by Anthropic).
