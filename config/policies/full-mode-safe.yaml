@@ -1,0 +1,182 @@
+# AtlasBridge Policy DSL v0 — Full Mode (Safe Preset)
+#
+# Full autopilot mode with conservative safety rules.
+# Auto-injection fires immediately when a rule matches.
+# Dangerous operations are denied or escalated to human.
+#
+# Read every rule before deploying. Start with assist-mode.yaml
+# and validate behaviour before switching to this policy.
+#
+# WARNING: In full mode the engine injects replies without waiting
+# for human confirmation. A poorly written rule will cause
+# unintended auto-replies. Validate and test before deploying.
+#
+# Deployment workflow:
+#   1. atlasbridge policy validate full-mode-safe.yaml
+#   2. atlasbridge policy test full-mode-safe.yaml --prompt "..." --explain
+#   3. Deploy in assist mode first: atlasbridge autopilot mode assist
+#   4. Observe for one session; check: atlasbridge autopilot explain
+#   5. Switch to full: atlasbridge autopilot mode full
+#   6. Keep /pause accessible from Telegram for the first few sessions
+
+policy_version: "0"
+name: "full-mode-safe"
+autonomy_mode: full
+
+rules:
+
+  # --------------------------------------------------------------------------
+  # SAFETY GUARDS — These come first; they must never be bypassed
+  # --------------------------------------------------------------------------
+
+  # Block credential prompts unconditionally
+  - id: "deny-credentials"
+    description: "Never auto-reply to credential prompts"
+    match:
+      prompt_type:
+        - free_text
+      contains: "password|token|api.?key|secret|passphrase"
+      contains_is_regex: true
+      min_confidence: low
+    action:
+      type: deny
+      reason: >
+        Credential prompts are never auto-replied. Supply the credential
+        directly or use atlasbridge sessions to unblock.
+
+  # Block force-push prompts unconditionally (even low-confidence)
+  - id: "deny-force-push"
+    description: "Never auto-approve git force-push"
+    match:
+      contains: "force.push|force push"
+      contains_is_regex: true
+      min_confidence: low
+    action:
+      type: deny
+      reason: "Force-push prompts are never auto-approved. Manual review required."
+
+  # Escalate any destructive-looking prompt to human
+  - id: "require-human-destructive"
+    description: "Escalate prompts involving destructive operations"
+    match:
+      contains: "delete|destroy|drop|purge|wipe|truncate|rm -rf"
+      contains_is_regex: true
+      min_confidence: low
+    action:
+      type: require_human
+      message: >
+        This prompt appears to involve a destructive operation.
+        Please review carefully before responding.
+
+  # Escalate "are you sure" prompts regardless of type
+  - id: "require-human-are-you-sure"
+    description: "Escalate explicit confirmation prompts to human"
+    match:
+      contains: "are you sure"
+      contains_is_regex: false
+      min_confidence: low
+    action:
+      type: require_human
+      message: >
+        This prompt is asking for explicit confirmation.
+        Please review carefully before responding.
+
+  # --------------------------------------------------------------------------
+  # AUTO-REPLY RULES — Only fire for high-confidence, known-safe patterns
+  # --------------------------------------------------------------------------
+
+  # Auto-press Enter on pager/confirmation prompts
+  - id: "auto-enter"
+    description: "Auto-confirm Press-Enter prompts (high confidence)"
+    match:
+      prompt_type:
+        - confirm_enter
+      min_confidence: medium
+    action:
+      type: auto_reply
+      value: "\n"
+      constraints:
+        allowed_choices:
+          - "\n"
+
+  # Auto-yes for "Continue?" high-confidence prompts
+  - id: "continue-yes"
+    description: "Auto-yes for high-confidence Continue prompts"
+    match:
+      prompt_type:
+        - yes_no
+      contains: "Continue"
+      contains_is_regex: false
+      min_confidence: high
+    action:
+      type: auto_reply
+      value: "y"
+      constraints:
+        allowed_choices:
+          - "y"
+          - "n"
+
+  # Auto-yes for pytest / test-runner prompts
+  - id: "pytest-yes"
+    description: "Auto-yes for test-runner confirmation prompts"
+    match:
+      prompt_type:
+        - yes_no
+      contains: "Run \\d+ tests?"
+      contains_is_regex: true
+      min_confidence: high
+    action:
+      type: auto_reply
+      value: "y"
+      constraints:
+        allowed_choices:
+          - "y"
+          - "n"
+
+  # Auto-yes for pip install confirmation
+  - id: "pip-install-yes"
+    description: "Auto-confirm pip install prompts"
+    match:
+      prompt_type:
+        - yes_no
+      contains: "(?i)proceed.*install|install.*proceed"
+      contains_is_regex: true
+      min_confidence: high
+    action:
+      type: auto_reply
+      value: "y"
+      constraints:
+        allowed_choices:
+          - "y"
+          - "n"
+
+  # --------------------------------------------------------------------------
+  # LOW-CONFIDENCE SAFETY NET — Route ambiguous events to human
+  # --------------------------------------------------------------------------
+  - id: "low-confidence-human"
+    description: "Low-confidence events always go to human"
+    match:
+      min_confidence: low
+      prompt_type:
+        - free_text
+    action:
+      type: require_human
+      message: >
+        AtlasBridge detected a possible input prompt with low confidence.
+        Last output shown above. Please respond or dismiss.
+
+  # --------------------------------------------------------------------------
+  # CATCH-ALL — Must be last
+  # --------------------------------------------------------------------------
+  - id: "catch-all"
+    description: "All unmatched prompts require human input"
+    match: {}
+    action:
+      type: require_human
+      message: >
+        No policy rule matched this prompt. Please review and respond.
+        Consider adding a rule to policy.yaml if this pattern repeats.
+
+defaults:
+  no_match: require_human
+  low_confidence: require_human

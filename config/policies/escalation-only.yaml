@@ -1,0 +1,44 @@
+# AtlasBridge Policy DSL v0 — Escalation Only
+#
+# The safest possible policy. Every prompt is forwarded to your
+# phone, no matter what. No auto-reply ever occurs.
+#
+# Use this as your starting point when you first deploy AtlasBridge,
+# or as a fallback if you want to disable autopilot without changing
+# the mode setting.
+#
+# This policy is functionally equivalent to autonomy_mode: off,
+# but it is defined as a policy file so the decision trace records
+# "matched_rule_id: catch-all" rather than null — making it clear
+# that the escalation was an intentional policy decision.
+#
+# Validate:  atlasbridge policy validate escalation-only.yaml
+# Test:      atlasbridge policy test escalation-only.yaml --prompt "Continue? [y/n]" --type yes_no --explain
+
+policy_version: "0"
+name: "escalation-only"
+autonomy_mode: off    # Global gate: no auto-reply regardless of rules
+
+rules:
+
+  # --------------------------------------------------------------------------
+  # Catch-all: every prompt goes to the human
+  #
+  # The autonomy_mode: off gate means auto_reply would be blocked even
+  # if we wrote such a rule. But using require_human explicitly documents
+  # the intent in the decision trace.
+  # --------------------------------------------------------------------------
+  - id: "catch-all"
+    description: "Every prompt requires human input — no automation"
+    match: {}
+    action:
+      type: require_human
+      message: >
+        All prompts are being forwarded to you. AtlasBridge is in
+        escalation-only mode. To enable automation, switch to
+        assist-mode.yaml or full-mode-safe.yaml and run:
+        atlasbridge autopilot mode assist
+
+defaults:
+  no_match: require_human
+  low_confidence: require_human

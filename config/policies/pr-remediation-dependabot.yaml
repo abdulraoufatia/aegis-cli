@@ -1,0 +1,145 @@
+# AtlasBridge Policy DSL v0 — Dependabot PR Remediation
+#
+# Auto-approve routine Dependabot prompt patterns when running
+# atlasbridge run claude in a repo that processes Dependabot PRs.
+#
+# Scope: only fires for sessions in repos under ~/workspaces/.
+# Tool: scoped to claude adapter.
+#
+# This policy is intentionally narrow: it only auto-approves
+# patterns that are deterministically associated with Dependabot
+# PR merge workflows. Everything else escalates to human.
+#
+# Validate:  atlasbridge policy validate pr-remediation-dependabot.yaml
+# Test:      atlasbridge policy test pr-remediation-dependabot.yaml \
+#              --prompt "Merge PR #42? [y/n]" --type yes_no --confidence high \
+#              --tool claude --repo ~/workspaces/my-repo --explain
+
+policy_version: "0"
+name: "pr-remediation-dependabot"
+autonomy_mode: full
+
+rules:
+
+  # --------------------------------------------------------------------------
+  # SAFETY: Never auto-reply to credential prompts
+  # --------------------------------------------------------------------------
+  - id: "deny-credentials"
+    description: "Never auto-reply to credential prompts"
+    match:
+      prompt_type:
+        - free_text
+      contains: "password|token|api.?key|secret|passphrase"
+      contains_is_regex: true
+      min_confidence: low
+    action:
+      type: deny
+      reason: "Credential prompts are never auto-replied."
+
+  # --------------------------------------------------------------------------
+  # SAFETY: Escalate force-push prompts
+  # --------------------------------------------------------------------------
+  - id: "deny-force-push"
+    description: "Never auto-approve force-push"
+    match:
+      contains: "force.push|force push"
+      contains_is_regex: true
+      min_confidence: low
+    action:
+      type: require_human
+      message: "Force-push prompt detected. Manual review required."
+
+  # --------------------------------------------------------------------------
+  # Auto-press Enter on pager / progress prompts during PR automation
+  # --------------------------------------------------------------------------
+  - id: "auto-enter"
+    description: "Auto-confirm Press-Enter prompts"
+    match:
+      prompt_type:
+        - confirm_enter
+      min_confidence: medium
+    action:
+      type: auto_reply
+      value: "\n"
+      constraints:
+        allowed_choices:
+          - "\n"
+
+  # --------------------------------------------------------------------------
+  # Auto-approve: "Squash and merge?" style PR merge confirmations
+  # --------------------------------------------------------------------------
+  - id: "squash-merge-yes"
+    description: "Auto-yes for squash-merge PR confirmation prompts (claude, workspaces)"
+    match:
+      tool_id: "claude"
+      repo: "~/workspaces"
+      prompt_type:
+        - yes_no
+      contains: "(?i)(squash.and.merge|merge.pr|merge.pull.request|approve.and.merge)"
+      contains_is_regex: true
+      min_confidence: high
+    action:
+      type: auto_reply
+      value: "y"
+      constraints:
+        allowed_choices:
+          - "y"
+          - "n"
+
+  # --------------------------------------------------------------------------
+  # Auto-approve: git commit / push confirmation for Dependabot fixups
+  # --------------------------------------------------------------------------
+  - id: "dependabot-commit-yes"
+    description: "Auto-yes for Dependabot-related commit/push confirmations"
+    match:
+      tool_id: "claude"
+      repo: "~/workspaces"
+      prompt_type:
+        - yes_no
+      contains: "(?i)(dependabot|bump|update.*version|version.*update)"
+      contains_is_regex: true
+      min_confidence: high
+    action:
+      type: auto_reply
+      value: "y"
+      constraints:
+        allowed_choices:
+          - "y"
+          - "n"
+
+  # --------------------------------------------------------------------------
+  # Auto-yes for CI check acknowledgement prompts
+  # --------------------------------------------------------------------------
+  - id: "ci-checks-yes"
+    description: "Auto-yes for 'CI checks passed, proceed?' style prompts"
+    match:
+      tool_id: "claude"
+      repo: "~/workspaces"
+      prompt_type:
+        - yes_no
+      contains: "(?i)(ci.*pass|checks.*pass|all.*green|proceed)"
+      contains_is_regex: true
+      min_confidence: high
+    action:
+      type: auto_reply
+      value: "y"
+      constraints:
+        allowed_choices:
+          - "y"
+          - "n"
+
+  # --------------------------------------------------------------------------
+  # Catch-all — anything not matched goes to human
+  # --------------------------------------------------------------------------
+  - id: "catch-all"
+    description: "All unmatched prompts require human input"
+    match: {}
+    action:
+      type: require_human
+      message: >
+        No Dependabot policy rule matched this prompt.
+        Please review and respond manually.
+
+defaults:
+  no_match: require_human
+  low_confidence: require_human

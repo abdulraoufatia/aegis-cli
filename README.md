@@ -313,6 +313,7 @@ See the `docs/` directory:
 | [channels.md](docs/channels.md) | BaseChannel interface, Telegram and Slack implementations |
 | [cli-ux.md](docs/cli-ux.md) | All CLI commands, output formats, exit codes |
 | [autopilot.md](docs/autopilot.md) | Autopilot engine architecture, kill switch, escalation protocol |
+| [policy-authoring.md](docs/policy-authoring.md) | Policy authoring guide — quick start, patterns, debugging, FAQ |
 | [policy-dsl.md](docs/policy-dsl.md) | AtlasBridge Policy DSL v0 full reference |
 | [autonomy-modes.md](docs/autonomy-modes.md) | Off / Assist / Full mode specs and behavior |
 | [roadmap-90-days.md](docs/roadmap-90-days.md) | 6-phase roadmap |
@@ -346,7 +347,15 @@ tests/
   prompt_lab/   — deterministic QA scenario runner
     scenarios/  — QA-001 through QA-020 scenario implementations
 docs/           — design documents
-config/         — policy.example.yaml, policy.schema.json
+config/
+  policy.example.yaml     — annotated full-featured example policy
+  policy.schema.json      — JSON Schema for IDE validation
+  policies/               — ready-to-use policy presets
+    minimal.yaml          — safe start: only Enter confirmations auto-handled
+    assist-mode.yaml      — assist mode with common automation rules
+    full-mode-safe.yaml   — full mode with deny guards for dangerous operations
+    pr-remediation-dependabot.yaml  — auto-approve Dependabot PR prompts
+    escalation-only.yaml  — all prompts routed to human (no automation)
 ```
 
 ---

@@ -1,0 +1,49 @@
+# AtlasBridge Policy DSL v0 — Minimal Safe Policy
+#
+# A minimal starting policy. All prompts route to your phone except
+# "Press Enter to continue" prompts, which are auto-confirmed.
+#
+# Use this when starting out. It will not auto-reply to anything
+# unexpected. Upgrade to assist-mode.yaml or full-mode-safe.yaml
+# once you are comfortable.
+#
+# Validate:  atlasbridge policy validate minimal.yaml
+# Test:      atlasbridge policy test minimal.yaml --prompt "Press Enter" --type confirm_enter --explain
+
+policy_version: "0"
+name: "minimal"
+autonomy_mode: assist   # Suggest Enter confirmations; you still confirm from your phone
+
+rules:
+
+  # --------------------------------------------------------------------------
+  # Auto-press Enter on "Press Enter to continue", pager prompts, "-- More --"
+  # These are unambiguous and safe to confirm automatically.
+  # --------------------------------------------------------------------------
+  - id: "auto-enter"
+    description: "Auto-confirm Press-Enter prompts"
+    match:
+      prompt_type:
+        - confirm_enter
+      min_confidence: medium
+    action:
+      type: auto_reply
+      value: "\n"
+      constraints:
+        allowed_choices:
+          - "\n"
+
+  # --------------------------------------------------------------------------
+  # Everything else goes to your phone
+  # --------------------------------------------------------------------------
+  - id: "catch-all"
+    description: "All other prompts require human input"
+    match: {}
+    action:
+      type: require_human
+      message: >
+        AtlasBridge detected a prompt. Please review and respond.
+
+defaults:
+  no_match: require_human
+  low_confidence: require_human

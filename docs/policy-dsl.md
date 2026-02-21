@@ -1,7 +1,7 @@
 # AtlasBridge Policy DSL v0
 
-**Version:** DSL v0
-**Status:** Design
+**Version:** DSL v0 (AtlasBridge v0.6.0+)
+**Status:** Implemented
 **Last updated:** 2026-02-21
 
 ---

@@ -209,6 +209,45 @@ Override with `ATLASBRIDGE_CONFIG` env var. Legacy `AEGIS_CONFIG` is also honour
 
 ---
 
+## Policy development
+
+```bash
+# Validate a policy file
+atlasbridge policy validate config/policy.example.yaml
+
+# Run policy against a simulated prompt (primary debugging tool)
+atlasbridge policy test config/policy.example.yaml \
+  --prompt "Continue? [y/n]" --type yes_no --confidence high --explain
+
+# Run all policy unit tests
+pytest tests/policy/ -v
+
+# Check recent autopilot decisions
+atlasbridge autopilot explain --last 20
+tail -n 20 ~/.atlasbridge/autopilot_decisions.jsonl | python3 -m json.tool
+```
+
+Policy module layout:
+
+| Path | Purpose |
+|------|---------|
+| `src/atlasbridge/core/policy/model.py` | Pydantic v2 models: Policy, PolicyRule, MatchCriteria, actions |
+| `src/atlasbridge/core/policy/parser.py` | load_policy(), parse_policy(), validate_policy_file() |
+| `src/atlasbridge/core/policy/evaluator.py` | evaluate() → PolicyDecision; first-match-wins; regex safety timeout |
+| `src/atlasbridge/core/policy/explain.py` | explain_decision(), explain_policy() for --explain output |
+| `src/atlasbridge/core/autopilot/engine.py` | AutopilotEngine, AutopilotState (RUNNING/PAUSED/STOPPED) |
+| `src/atlasbridge/core/autopilot/trace.py` | DecisionTrace — append-only JSONL |
+| `src/atlasbridge/core/autopilot/actions.py` | execute_action() dispatcher for all 4 action types |
+| `src/atlasbridge/cli/_policy_cmd.py` | policy validate / policy test commands |
+| `src/atlasbridge/cli/_autopilot.py` | autopilot enable/disable/status/mode/explain commands |
+| `tests/policy/fixtures/` | YAML policy fixtures for unit tests |
+| `config/policy.example.yaml` | Annotated full-featured example (10 rules) |
+| `config/policies/` | Ready-to-use policy presets (5 files) |
+| `docs/policy-authoring.md` | Authoring guide — quick start, patterns, debugging, FAQ |
+| `docs/policy-dsl.md` | Full DSL reference — schema, evaluation semantics, idempotency |
+
+---
+
 ## Roadmap
 
 | Version | Target | Status | Key deliverable |
