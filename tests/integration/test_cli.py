@@ -125,7 +125,7 @@ class TestVersionCommand:
     def test_version_output(self, runner: CliRunner) -> None:
         result = runner.invoke(cli, ["version"], catch_exceptions=False)
         assert result.exit_code == 0
-        assert "aegis" in result.output.lower() or "0.2.0" in result.output
+        assert "aegis" in result.output.lower()
 
     def test_version_json(self, runner: CliRunner) -> None:
         result = runner.invoke(cli, ["version", "--json"], catch_exceptions=False)

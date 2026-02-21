@@ -105,18 +105,42 @@ class DaemonManager:
 
     async def _init_channel(self) -> None:
         channel_config = self._config.get("channels", {})
-        telegram_cfg = channel_config.get("telegram", {})
+        channels = []
 
-        if not telegram_cfg:
+        telegram_cfg = channel_config.get("telegram", {})
+        if telegram_cfg:
+            from aegis.channels.telegram.channel import TelegramChannel
+
+            channels.append(
+                TelegramChannel(
+                    bot_token=telegram_cfg["bot_token"],
+                    allowed_user_ids=telegram_cfg.get("allowed_user_ids", []),
+                )
+            )
+
+        slack_cfg = channel_config.get("slack", {})
+        if slack_cfg:
+            from aegis.channels.slack.channel import SlackChannel
+
+            channels.append(
+                SlackChannel(
+                    bot_token=slack_cfg["bot_token"],
+                    app_token=slack_cfg["app_token"],
+                    allowed_user_ids=slack_cfg.get("allowed_user_ids", []),
+                )
+            )
+
+        if not channels:
             logger.warning("No channel configured — prompts will not be routed")
             return
 
-        from aegis.channels.telegram.channel import TelegramChannel
+        if len(channels) == 1:
+            self._channel = channels[0]
+        else:
+            from aegis.channels.multi import MultiChannel
 
-        self._channel = TelegramChannel(
-            bot_token=telegram_cfg["bot_token"],
-            allowed_user_ids=telegram_cfg.get("allowed_user_ids", []),
-        )
+            self._channel = MultiChannel(channels)
+
         await self._channel.start()
 
     async def _init_session_manager(self) -> None:

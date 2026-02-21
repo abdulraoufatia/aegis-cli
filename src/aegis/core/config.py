@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field, SecretStr, field_validator
+from pydantic import BaseModel, Field, SecretStr, field_validator, model_validator
 
 from aegis.core.constants import (
     AEGIS_DIR_NAME,
@@ -55,6 +55,38 @@ class TelegramConfig(BaseModel):
         """Accept both list and comma-separated string."""
         if isinstance(v, str):
             return [int(uid.strip()) for uid in v.split(",") if uid.strip()]
+        return v
+
+
+class SlackConfig(BaseModel):
+    bot_token: SecretStr  # xoxb-* Slack Bot User OAuth Token
+    app_token: SecretStr  # xapp-* App-Level Token for Socket Mode
+    allowed_users: list[str] = Field(min_length=1)  # Slack user IDs, e.g. "U1234567890"
+
+    @field_validator("bot_token", mode="before")
+    @classmethod
+    def validate_bot_token(cls, v: Any) -> Any:
+        import re
+
+        token = str(v.get_secret_value() if hasattr(v, "get_secret_value") else v)
+        if not re.fullmatch(r"xoxb-[A-Za-z0-9\-]+", token):
+            raise ValueError(
+                "Invalid Slack bot token format. "
+                "Expected: xoxb-<alphanumeric>. Get one from your Slack App settings."
+            )
+        return v
+
+    @field_validator("app_token", mode="before")
+    @classmethod
+    def validate_app_token(cls, v: Any) -> Any:
+        import re
+
+        token = str(v.get_secret_value() if hasattr(v, "get_secret_value") else v)
+        if not re.fullmatch(r"xapp-[A-Za-z0-9\-]+", token):
+            raise ValueError(
+                "Invalid Slack app token format. "
+                "Expected: xapp-<alphanumeric>. Enable Socket Mode in your Slack App settings."
+            )
         return v
 
 
@@ -121,11 +153,21 @@ class AdaptersConfig(BaseModel):
 class AegisConfig(BaseModel):
     """Root Aegis configuration model."""
 
-    telegram: TelegramConfig
+    telegram: TelegramConfig | None = None
+    slack: SlackConfig | None = None
     prompts: PromptsConfig = Field(default_factory=PromptsConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     adapters: AdaptersConfig = Field(default_factory=AdaptersConfig)
+
+    @model_validator(mode="after")
+    def at_least_one_channel(self) -> AegisConfig:
+        if self.telegram is None and self.slack is None:
+            raise ValueError(
+                "At least one channel must be configured: [telegram] or [slack]. "
+                "Run 'aegis setup' to configure a channel."
+            )
+        return self
 
     # Computed paths (not stored in config file)
     _config_path: Path | None = None

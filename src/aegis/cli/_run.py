@@ -23,10 +23,16 @@ def cmd_run(tool: str, command: list[str], label: str, cwd: str, console: Consol
         console.print(f"[red]Config error:[/red] {exc}")
         sys.exit(1)
 
+    # Build a human-readable channel summary
+    channel_parts = []
+    if config.telegram:
+        channel_parts.append(f"Telegram ({len(config.telegram.allowed_users)} user(s))")
+    if config.slack:
+        channel_parts.append(f"Slack ({len(config.slack.allowed_users)} user(s))")
+    channel_str = " + ".join(channel_parts) or "no channel configured"
+
     console.print(f"[bold]Aegis[/bold] supervising: [cyan]{' '.join(command)}[/cyan]")
-    console.print(
-        f"Session will forward prompts to Telegram ({len(config.telegram.allowed_users)} user(s))"
-    )
+    console.print(f"Session will forward prompts via {channel_str}")
     console.print("Press Ctrl+C to stop.\n")
 
     try:
@@ -50,9 +56,21 @@ def _config_to_dict(tool: str, command: list[str], label: str, cwd: str, config:
     """Convert AegisConfig + run params into the DaemonManager config dict."""
     from pathlib import Path
 
-    bot_token = config.telegram.bot_token.get_secret_value()  # type: ignore[union-attr]
-    allowed_users = config.telegram.allowed_users  # type: ignore[union-attr]
     db_path = config.db_path  # type: ignore[union-attr]
+    channels: dict[str, object] = {}
+
+    if config.telegram is not None:  # type: ignore[union-attr]
+        channels["telegram"] = {
+            "bot_token": config.telegram.bot_token.get_secret_value(),  # type: ignore[union-attr]
+            "allowed_user_ids": config.telegram.allowed_users,  # type: ignore[union-attr]
+        }
+
+    if config.slack is not None:  # type: ignore[union-attr]
+        channels["slack"] = {
+            "bot_token": config.slack.bot_token.get_secret_value(),  # type: ignore[union-attr]
+            "app_token": config.slack.app_token.get_secret_value(),  # type: ignore[union-attr]
+            "allowed_user_ids": config.slack.allowed_users,  # type: ignore[union-attr]
+        }
 
     return {
         "data_dir": str(db_path.parent),
@@ -60,12 +78,7 @@ def _config_to_dict(tool: str, command: list[str], label: str, cwd: str, config:
         "command": command,
         "label": label,
         "cwd": cwd or str(Path.cwd()),
-        "channels": {
-            "telegram": {
-                "bot_token": bot_token,
-                "allowed_user_ids": allowed_users,
-            }
-        },
+        "channels": channels,
         "prompts": {
             "timeout_seconds": config.prompts.timeout_seconds,  # type: ignore[union-attr]
             "stuck_timeout_seconds": config.prompts.stuck_timeout_seconds,  # type: ignore[union-attr]
