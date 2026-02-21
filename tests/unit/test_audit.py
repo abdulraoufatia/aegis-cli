@@ -1,4 +1,4 @@
-"""Unit tests for aegis.core.audit.writer — AuditWriter structured events."""
+"""Unit tests for atlasbridge.core.audit.writer — AuditWriter structured events."""
 
 from __future__ import annotations
 

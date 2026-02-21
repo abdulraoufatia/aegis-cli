@@ -15,8 +15,8 @@ Usage::
     assert results.passed
 
     # Via CLI
-    aegis lab run partial-line-prompt
-    aegis lab run --all
+    atlasbridge lab run partial-line-prompt
+    atlasbridge lab run --all
 
 Architecture:
   Simulator

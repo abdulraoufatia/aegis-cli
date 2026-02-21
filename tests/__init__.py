@@ -1,5 +1,5 @@
 """
-Aegis test suite.
+AtlasBridge test suite.
 
 Tests are organized by layer:
     tests/unit/         Unit tests (no I/O, fast)

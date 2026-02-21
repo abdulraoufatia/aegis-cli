@@ -1,4 +1,4 @@
-"""Unit tests for aegis.core.prompt.state — PromptStateMachine transitions."""
+"""Unit tests for atlasbridge.core.prompt.state — PromptStateMachine transitions."""
 
 from __future__ import annotations
 
