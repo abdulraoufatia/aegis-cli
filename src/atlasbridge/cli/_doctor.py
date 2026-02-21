@@ -91,6 +91,31 @@ def _check_bot_token() -> dict:
         return {"name": "Bot token", "status": "fail", "detail": str(exc)}
 
 
+def _check_telegram_reachability() -> dict | None:
+    """Verify the configured Telegram bot token can reach the API."""
+    try:
+        from atlasbridge.core.config import load_config
+
+        cfg_path = _config_path()
+        if not cfg_path.exists():
+            return None
+        cfg = load_config(cfg_path)
+        if not cfg.telegram:
+            return None
+        token = cfg.telegram.bot_token.get_secret_value()
+
+        from atlasbridge.channels.telegram.verify import verify_telegram_token
+
+        ok, detail = verify_telegram_token(token)
+        return {
+            "name": "Telegram reachability",
+            "status": "pass" if ok else "warn",
+            "detail": detail,
+        }
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _check_systemd() -> dict | None:
     """Linux-only: check if systemd user session is available."""
     if not sys.platform.startswith("linux"):
@@ -332,6 +357,7 @@ def cmd_doctor(fix: bool, as_json: bool, console: Console) -> None:
         _check_ptyprocess(),
         _check_config(),
         _check_bot_token(),
+        _check_telegram_reachability(),
         _check_database(),
         _check_adapters(),
         _check_ui_assets(),
