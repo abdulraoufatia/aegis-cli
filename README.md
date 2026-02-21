@@ -142,6 +142,46 @@ AtlasBridge is a relay, not a firewall. It does not interpret commands, score ri
 
 ---
 
+## Changelog
+
+### v0.5.0 — Interactive Terminal UI
+
+- **`atlasbridge` (no args)** — launches the built-in TUI when run in an interactive terminal; prints help otherwise
+- **`atlasbridge ui`** — explicit TUI launch command
+- **Welcome screen** — shows live status (daemon, channel, sessions) when configured; onboarding copy when not
+- **Setup Wizard** — 4-step guided flow: choose channel → enter credentials (masked) → allowlist user IDs → confirm and save
+- **Doctor screen** — environment health checks with ✓/⚠/✗ icons, re-runnable with `R`
+- **Sessions screen** — DataTable of active and recent sessions
+- **Logs screen** — tail of the hash-chained audit log (last 100 events)
+- **Bug fix** — `channel_summary` now returns `"none"` when channels exist but none are configured
+- 74 new unit tests; 273 total
+
+### v0.4.0 — Slack + AtlasBridge rename
+
+- Full Slack channel implementation (Web API + Socket Mode + Block Kit buttons)
+- MultiChannel fan-out — broadcast to Telegram and Slack simultaneously
+- Renamed from Aegis to AtlasBridge; auto-migration from `~/.aegis/` on first run
+- Added `GeminiAdapter` for Google Gemini CLI
+
+### v0.3.0 — Linux
+
+- Linux PTY supervisor (same `ptyprocess` backend as macOS)
+- systemd user service integration (`atlasbridge start` installs and enables the unit)
+- 20 QA scenarios in the Prompt Lab
+
+### v0.2.0 — macOS MVP
+
+- Working end-to-end Telegram relay for Claude Code
+- Tri-signal prompt detector (pattern match + TTY block inference + silence watchdog)
+- Atomic SQL idempotency guard (`decide_prompt()`)
+- Hash-chained audit log
+
+### v0.1.0 — Design
+
+- Architecture docs, code stubs, Prompt Lab simulator infrastructure
+
+---
+
 ## Status
 
 | Version | Status | Description |
@@ -149,8 +189,9 @@ AtlasBridge is a relay, not a firewall. It does not interpret commands, score ri
 | v0.1.0 | Released | Architecture, docs, and code stubs |
 | v0.2.0 | Released | macOS MVP — working Telegram relay |
 | v0.3.0 | Released | Linux support, systemd integration |
-| **v0.4.0** | **Released** | Slack channel, MultiChannel fan-out, renamed to AtlasBridge |
-| v0.5.0 | Planned | Windows (ConPTY, experimental) |
+| v0.4.0 | Released | Slack channel, MultiChannel fan-out, renamed to AtlasBridge |
+| **v0.5.0** | **Released** | Interactive terminal UI — setup wizard, sessions, logs, doctor |
+| v0.6.0 | Planned | Windows (ConPTY, experimental) |
 
 ---
 
