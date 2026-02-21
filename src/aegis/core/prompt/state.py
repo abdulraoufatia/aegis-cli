@@ -14,12 +14,11 @@ Rules:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Callable
+from datetime import UTC, datetime
 
 from aegis.core.prompt.models import PromptEvent, PromptStatus
-
 
 VALID_TRANSITIONS: dict[PromptStatus, set[PromptStatus]] = {
     PromptStatus.CREATED: {PromptStatus.ROUTED, PromptStatus.FAILED, PromptStatus.CANCELED},
@@ -60,7 +59,7 @@ class PromptStateMachine:
     def __post_init__(self) -> None:
         from datetime import timedelta
 
-        self.expires_at = datetime.now(timezone.utc) + timedelta(seconds=self.event.ttl_seconds)
+        self.expires_at = datetime.now(UTC) + timedelta(seconds=self.event.ttl_seconds)
 
     @property
     def is_terminal(self) -> bool:
@@ -68,7 +67,7 @@ class PromptStateMachine:
 
     @property
     def is_expired(self) -> bool:
-        return datetime.now(timezone.utc) > self.expires_at
+        return datetime.now(UTC) > self.expires_at
 
     def transition(self, new_status: PromptStatus, reason: str = "") -> None:
         """Advance state; raise ValueError on invalid transition."""

@@ -32,7 +32,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import secrets
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from datetime import UTC
+from typing import Any
 
 from aegis.channels.base import BaseChannel
 from aegis.core.prompt.models import Confidence, PromptEvent, PromptType, Reply
@@ -126,7 +128,7 @@ class TelegramChannel(BaseChannel):
             try:
                 reply = await asyncio.wait_for(self._reply_queue.get(), timeout=1.0)
                 yield reply
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
 
     def is_allowed(self, identity: str) -> bool:
@@ -298,6 +300,6 @@ class TelegramChannel(BaseChannel):
 
 
 def _utcnow() -> str:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()

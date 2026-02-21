@@ -1,11 +1,24 @@
 """aegis lab — Prompt Lab CLI commands."""
 
 from __future__ import annotations
+
 import json
+import sys
+from pathlib import Path
+
 from rich.console import Console
 
 
+def _ensure_tests_importable() -> None:
+    """Add project root to sys.path so tests.prompt_lab can be imported."""
+    # This file: src/aegis/cli/_lab.py  →  parents[3] = project root
+    project_root = Path(__file__).parents[3]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+
 def cmd_lab_list(as_json: bool, console: Console) -> None:
+    _ensure_tests_importable()
     from tests.prompt_lab.simulator import ScenarioRegistry
 
     ScenarioRegistry.discover()
@@ -37,7 +50,9 @@ def cmd_lab_run(
     as_json: bool,
     console: Console,
 ) -> None:
+    _ensure_tests_importable()
     import asyncio
+
     from tests.prompt_lab.simulator import ScenarioRegistry, Simulator
 
     ScenarioRegistry.discover()

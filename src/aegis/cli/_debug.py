@@ -1,6 +1,7 @@
 """aegis debug bundle — create a redacted support bundle."""
 
 from __future__ import annotations
+
 from rich.console import Console
 
 

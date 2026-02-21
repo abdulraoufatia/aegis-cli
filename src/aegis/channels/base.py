@@ -20,7 +20,8 @@ that the PromptRouter delivers to the correct session's PTY supervisor.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 from aegis.core.prompt.models import PromptEvent, Reply
 

@@ -29,7 +29,7 @@ import hashlib
 import json
 import logging
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -226,7 +226,7 @@ class Database:
         Returns 1 if the update succeeded (prompt accepted).
         Returns 0 if rejected (replay, expired, wrong nonce, wrong status).
         """
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         cur = self._db.execute(
             """
             UPDATE prompts

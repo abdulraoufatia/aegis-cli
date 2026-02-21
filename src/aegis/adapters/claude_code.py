@@ -19,15 +19,12 @@ Claude Code quirks:
 
 from __future__ import annotations
 
-import asyncio
-import sys
 from typing import Any
 
 from aegis.adapters.base import AdapterRegistry, BaseAdapter
 from aegis.core.prompt.detector import PromptDetector
 from aegis.core.prompt.models import PromptType
 from aegis.os.tty.windows import get_tty_class
-
 
 # Value normalisation: (prompt_type, value) → bytes to inject
 _NORMALISE: dict[str, dict[str, bytes]] = {
@@ -75,8 +72,8 @@ class ClaudeCodeAdapter(BaseAdapter):
             env=env or {},
             cwd=cwd,
         )
-        TTYClass = get_tty_class()
-        tty = TTYClass(cfg, session_id)
+        tty_class = get_tty_class()
+        tty = tty_class(cfg, session_id)
         self._supervisors[session_id] = tty
         self._detectors[session_id] = PromptDetector(session_id)
         self._output_buffers[session_id] = bytearray()

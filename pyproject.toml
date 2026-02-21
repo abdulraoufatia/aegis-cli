@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aegis-cli"
-version = "0.1.0"
+version = "0.2.0"
 description = "Universal human-in-the-loop control plane for AI developer agents — forward prompts to your phone, reply from anywhere"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -82,14 +82,13 @@ Security = "https://github.com/abdulraoufatia/aegis-cli/blob/main/SECURITY.md"
 # ---------------------------------------------------------------------------
 
 [tool.setuptools.packages.find]
-# Root package (aegis/) is the installed distribution for now.
-# src/aegis/ stubs will become the primary package in v0.2.0.
-where = ["."]
-include = ["aegis*"]
+# src/aegis/ is the installed distribution for v0.2.0+
+where = ["src"]
 
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+exclude = ["_legacy_aegis"]
 
 [tool.ruff.lint]
 select = [
@@ -118,12 +117,16 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "ANN", "S105", "S106", "S108"]
 "tests/prompt_lab/**/*.py" = ["S101", "ANN", "F401", "E501", "UP", "I", "B"]
-"aegis/policy/detector.py" = ["E501"]         # regex patterns are inherently long
-# New src/aegis design stubs — full lint enforcement deferred to v0.2.0 implementation
-"src/**/*.py" = ["ANN", "I", "F401", "E501", "N", "UP", "B", "C4", "S", "W"]
+"src/aegis/cli/*.py" = ["ANN", "E501"]  # CLI glue — annotations deferred; Rich strings can be long
+"src/aegis/core/daemon/*.py" = ["ANN"] # daemon orchestration
+"src/aegis/os/**/*.py" = ["ANN"]       # PTY platform code
+"src/aegis/adapters/*.py" = ["ANN"]    # adapter glue
+"src/aegis/channels/**/*.py" = ["ANN"] # channel implementations
 
 [tool.mypy]
 python_version = "3.11"
+mypy_path = ["src"]
+explicit_package_bases = true
 strict = true
 warn_return_any = false        # JSON responses are typed as Any throughout; too noisy
 warn_unused_configs = true
@@ -136,19 +139,18 @@ module = ["ptyprocess.*", "detect_secrets.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+# New src/aegis package — strict mode applied incrementally
 module = [
-    "aegis.audit.writer",
-    "aegis.store.models",
-    "aegis.bridge.pty_supervisor",
-    "aegis.channels.telegram.bot",
-    "aegis.channels.base",
+    "aegis.os.*",
+    "aegis.adapters.*",
+    "aegis.core.daemon.*",
+    "aegis.core.routing.*",
+    "aegis.core.session.*",
+    "aegis.core.store.*",
+    "aegis.core.audit.*",
+    "aegis.channels.*",
+    "aegis.cli.*",
 ]
-# Pre-existing strict-mode issues in modules that require real I/O to type correctly
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-# New src/aegis package — design stubs; strict mode applied incrementally
-module = ["aegis.os.*", "aegis.adapters.*", "aegis.core.daemon.*", "aegis.core.routing.*", "aegis.core.session.*", "aegis.core.store.*", "aegis.core.audit.*", "aegis.channels.*", "aegis.cli.*"]
 ignore_errors = true
 
 [tool.pytest.ini_options]
@@ -168,15 +170,11 @@ markers = [
 source = ["aegis"]
 omit = [
     "tests/*",
-    "aegis/cli/main.py",
-    "aegis/core/github_client.py",         # requires live GitHub API
-    "aegis/core/fix_engine.py",            # requires subprocess + Anthropic API
-    "aegis/core/daemon_services/*.py",     # daemon fork/signal code not unit-testable
-    # New src/aegis design stubs — coverage added in v0.2.0 implementation
-    "src/aegis/os/*",
-    "src/aegis/core/daemon/*",
-    "src/aegis/channels/*",
-    "src/aegis/cli/*",
+    "*/aegis/cli/main.py",
+    "*/aegis/os/*",
+    "*/aegis/core/daemon/*",
+    "*/aegis/channels/*",
+    "*/aegis/cli/*",
 ]
 
 [tool.coverage.report]

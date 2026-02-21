@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from aegis.os.tty.base import BaseTTY, PTYConfig
 

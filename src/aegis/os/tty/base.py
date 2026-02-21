@@ -21,8 +21,8 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from typing import AsyncIterator
 
 
 @dataclass
@@ -122,7 +122,7 @@ class BaseTTY(ABC):
             try:
                 data = await asyncio.wait_for(self._reply_queue.get(), timeout=0.1)
                 await self.inject_reply(data)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
 
     # ------------------------------------------------------------------

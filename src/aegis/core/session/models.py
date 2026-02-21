@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -34,7 +34,7 @@ class Session:
     cwd: str = ""
     pid: int = -1
     status: SessionStatus = SessionStatus.STARTING
-    started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    started_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     ended_at: str = ""
     exit_code: int | None = None
 
@@ -60,7 +60,7 @@ class Session:
 
     def mark_ended(self, exit_code: int | None = None, crashed: bool = False) -> None:
         self.exit_code = exit_code
-        self.ended_at = datetime.now(timezone.utc).isoformat()
+        self.ended_at = datetime.now(UTC).isoformat()
         self.status = SessionStatus.CRASHED if crashed else SessionStatus.COMPLETED
 
     @property

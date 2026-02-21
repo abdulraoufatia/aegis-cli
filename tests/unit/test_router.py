@@ -1,0 +1,228 @@
+"""Unit tests for aegis.core.routing.router — PromptRouter forward/return paths."""
+
+from __future__ import annotations
+
+import uuid
+from datetime import UTC
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from aegis.core.prompt.models import Confidence, PromptEvent, PromptStatus, PromptType, Reply
+from aegis.core.routing.router import PromptRouter
+from aegis.core.session.manager import SessionManager
+from aegis.core.session.models import Session
+
+
+def _session(tool: str = "claude") -> Session:
+    return Session(session_id=str(uuid.uuid4()), tool=tool)
+
+
+def _event(session_id: str, confidence: Confidence = Confidence.HIGH) -> PromptEvent:
+    return PromptEvent.create(
+        session_id=session_id,
+        prompt_type=PromptType.TYPE_YES_NO,
+        confidence=confidence,
+        excerpt="Continue? [y/N]",
+    )
+
+
+def _reply(prompt_id: str, session_id: str, value: str = "y") -> Reply:
+    from datetime import datetime
+
+    return Reply(
+        prompt_id=prompt_id,
+        session_id=session_id,
+        value=value,
+        nonce="test-nonce",
+        channel_identity="telegram:12345",
+        timestamp=datetime.now(UTC).isoformat(),
+    )
+
+
+@pytest.fixture
+def session_manager() -> SessionManager:
+    return SessionManager()
+
+
+@pytest.fixture
+def mock_channel() -> AsyncMock:
+    channel = AsyncMock()
+    channel.send_prompt.return_value = "msg-100"
+    # is_allowed is a sync method — use MagicMock so it doesn't return a coroutine
+    channel.is_allowed = MagicMock(return_value=True)
+    return channel
+
+
+@pytest.fixture
+def mock_adapter() -> AsyncMock:
+    return AsyncMock()
+
+
+@pytest.fixture
+def session(session_manager: SessionManager) -> Session:
+    s = _session()
+    session_manager.register(s)
+    return s
+
+
+@pytest.fixture
+def router(session_manager: SessionManager, mock_channel: AsyncMock) -> PromptRouter:
+    return PromptRouter(
+        session_manager=session_manager,
+        channel=mock_channel,
+        adapter_map={},
+        store=MagicMock(),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Forward path
+# ---------------------------------------------------------------------------
+
+
+class TestRouteEvent:
+    @pytest.mark.asyncio
+    async def test_high_confidence_dispatched(
+        self,
+        router: PromptRouter,
+        session: Session,
+        mock_channel: AsyncMock,
+    ) -> None:
+        event = _event(session.session_id, Confidence.HIGH)
+        await router.route_event(event)
+        mock_channel.send_prompt.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_low_confidence_not_dispatched(
+        self,
+        router: PromptRouter,
+        session: Session,
+        mock_channel: AsyncMock,
+    ) -> None:
+        event = _event(session.session_id, Confidence.LOW)
+        await router.route_event(event)
+        mock_channel.send_prompt.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_unknown_session_drops_event(
+        self,
+        router: PromptRouter,
+        mock_channel: AsyncMock,
+    ) -> None:
+        event = _event("nonexistent-session-id")
+        await router.route_event(event)
+        mock_channel.send_prompt.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_state_machine_advances_to_awaiting_reply(
+        self,
+        router: PromptRouter,
+        session: Session,
+        mock_channel: AsyncMock,
+    ) -> None:
+        event = _event(session.session_id)
+        await router.route_event(event)
+        sm = router._machines.get(event.prompt_id)
+        assert sm is not None
+        assert sm.status == PromptStatus.AWAITING_REPLY
+
+    @pytest.mark.asyncio
+    async def test_second_prompt_queued_while_active(
+        self,
+        router: PromptRouter,
+        session: Session,
+        mock_channel: AsyncMock,
+    ) -> None:
+        e1 = _event(session.session_id)
+        e2 = _event(session.session_id)
+        await router.route_event(e1)  # dispatched
+        await router.route_event(e2)  # queued
+        # Only one send_prompt call (e1), e2 is queued
+        assert mock_channel.send_prompt.call_count == 1
+        queue = router._pending.get(session.session_id, [])
+        assert any(e.prompt_id == e2.prompt_id for e in queue)
+
+
+# ---------------------------------------------------------------------------
+# Return path
+# ---------------------------------------------------------------------------
+
+
+class TestHandleReply:
+    @pytest.mark.asyncio
+    async def test_valid_reply_injected(
+        self,
+        router: PromptRouter,
+        session: Session,
+        mock_channel: AsyncMock,
+        mock_adapter: AsyncMock,
+    ) -> None:
+        event = _event(session.session_id)
+        await router.route_event(event)
+
+        # Add the adapter for this session
+        router._adapter_map[session.session_id] = mock_adapter
+
+        reply = _reply(event.prompt_id, session.session_id, value="y")
+        await router.handle_reply(reply)
+
+        mock_adapter.inject_reply.assert_called_once()
+        sm = router._machines[event.prompt_id]
+        assert sm.status == PromptStatus.RESOLVED
+
+    @pytest.mark.asyncio
+    async def test_unknown_prompt_id_notified(
+        self,
+        router: PromptRouter,
+        session: Session,
+        mock_channel: AsyncMock,
+    ) -> None:
+        reply = _reply("unknown-prompt-id", session.session_id)
+        await router.handle_reply(reply)
+        mock_channel.notify.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_disallowed_identity_rejected(
+        self,
+        router: PromptRouter,
+        session: Session,
+        mock_channel: AsyncMock,
+        mock_adapter: AsyncMock,
+    ) -> None:
+        event = _event(session.session_id)
+        await router.route_event(event)
+        router._adapter_map[session.session_id] = mock_adapter
+
+        # Make channel reject this identity
+        mock_channel.is_allowed = MagicMock(return_value=False)
+
+        reply = _reply(event.prompt_id, session.session_id)
+        await router.handle_reply(reply)
+        mock_adapter.inject_reply.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# TTL expiry
+# ---------------------------------------------------------------------------
+
+
+class TestExpireOverdue:
+    @pytest.mark.asyncio
+    async def test_overdue_prompt_expired(
+        self,
+        router: PromptRouter,
+        session: Session,
+        mock_channel: AsyncMock,
+    ) -> None:
+        event = _event(session.session_id)
+        await router.route_event(event)
+
+        # Push TTL into the past
+        from datetime import datetime, timedelta
+
+        sm = router._machines[event.prompt_id]
+        sm.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+
+        await router.expire_overdue()
+        assert sm.status == PromptStatus.EXPIRED
