@@ -76,9 +76,11 @@ def get_tty_class() -> type:
     """Return the appropriate TTY class for the current platform."""
     if sys.platform == "darwin":
         from aegis.os.tty.macos import MacOSTTY
+
         return MacOSTTY
     elif sys.platform.startswith("linux"):
         from aegis.os.tty.linux import LinuxTTY
+
         return LinuxTTY
     elif sys.platform == "win32":
         return WindowsTTY

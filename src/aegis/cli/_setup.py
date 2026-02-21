@@ -1,4 +1,5 @@
 """aegis setup — interactive first-time configuration."""
+
 from __future__ import annotations
 from rich.console import Console
 

@@ -32,8 +32,7 @@ class MacOSTTY(BaseTTY):
             import ptyprocess  # type: ignore[import]
         except ImportError as exc:
             raise RuntimeError(
-                "ptyprocess is required for macOS PTY support. "
-                "Install with: pip install ptyprocess"
+                "ptyprocess is required for macOS PTY support. Install with: pip install ptyprocess"
             ) from exc
 
         env = {**os.environ, **self.config.env} if self.config.env else None
@@ -104,7 +103,9 @@ class MacOSTTY(BaseTTY):
         while self._running and self.is_alive():
             try:
                 chunk = await loop.run_in_executor(
-                    None, sys.stdin.buffer.read1, 1024  # type: ignore[attr-defined]
+                    None,
+                    sys.stdin.buffer.read1,
+                    1024,  # type: ignore[attr-defined]
                 )
                 if chunk:
                     await loop.run_in_executor(None, self._proc.write, chunk)

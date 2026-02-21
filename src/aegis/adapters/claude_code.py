@@ -57,7 +57,7 @@ class ClaudeCodeAdapter(BaseAdapter):
     min_tool_version = "0.2.0"
 
     def __init__(self) -> None:
-        self._supervisors: dict[str, Any] = {}       # session_id → BaseTTY
+        self._supervisors: dict[str, Any] = {}  # session_id → BaseTTY
         self._detectors: dict[str, PromptDetector] = {}
         self._output_buffers: dict[str, bytearray] = {}
 
@@ -101,7 +101,7 @@ class ClaudeCodeAdapter(BaseAdapter):
                 # Keep rolling buffer bounded at max_buffer_bytes
                 buf.extend(chunk)
                 if len(buf) > tty.config.max_buffer_bytes:
-                    del buf[:len(buf) - tty.config.max_buffer_bytes]
+                    del buf[: len(buf) - tty.config.max_buffer_bytes]
             return chunk
         return b""
 

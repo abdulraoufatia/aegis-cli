@@ -44,9 +44,9 @@ class PromptRouter:
     def __init__(
         self,
         session_manager: SessionManager,
-        channel: Any,        # BaseChannel — avoid circular import
+        channel: Any,  # BaseChannel — avoid circular import
         adapter_map: dict[str, Any],  # session_id → BaseAdapter
-        store: Any,          # Database — for audit/idempotency
+        store: Any,  # Database — for audit/idempotency
     ) -> None:
         self._sessions = session_manager
         self._channel = channel

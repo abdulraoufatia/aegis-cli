@@ -1,4 +1,5 @@
 """aegis run — launch a CLI tool under Aegis supervision."""
+
 from __future__ import annotations
 from rich.console import Console
 

@@ -69,10 +69,7 @@ class SessionManager:
         return [s for s in self._sessions.values() if s.is_active]
 
     def sessions_with_pending_prompt(self) -> list[Session]:
-        return [
-            s for s in self._sessions.values()
-            if s.status == SessionStatus.AWAITING_REPLY
-        ]
+        return [s for s in self._sessions.values() if s.status == SessionStatus.AWAITING_REPLY]
 
     def count_active(self) -> int:
         return sum(1 for s in self._sessions.values() if s.is_active)

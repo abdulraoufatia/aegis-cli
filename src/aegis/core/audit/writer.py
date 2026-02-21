@@ -152,13 +152,9 @@ class AuditWriter:
         )
 
     def prompt_expired(self, session_id: str, prompt_id: str) -> None:
-        self._write(
-            "prompt_expired", {}, session_id=session_id, prompt_id=prompt_id
-        )
+        self._write("prompt_expired", {}, session_id=session_id, prompt_id=prompt_id)
 
-    def duplicate_callback(
-        self, session_id: str, prompt_id: str, nonce: str
-    ) -> None:
+    def duplicate_callback(self, session_id: str, prompt_id: str, nonce: str) -> None:
         self._write(
             "duplicate_callback_ignored",
             {"nonce": nonce, "rows_affected": 0},

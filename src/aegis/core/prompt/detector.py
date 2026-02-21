@@ -71,7 +71,9 @@ _MULTIPLE_CHOICE_PATTERNS: list[Pattern[str]] = [
 # FREE TEXT patterns
 _FREE_TEXT_PATTERNS: list[Pattern[str]] = [
     re.compile(r"(?:enter|type|provide|input)\b.{1,40}:\s*$", re.IGNORECASE | re.MULTILINE),
-    re.compile(r"(?:name|email|username|branch|message|description)\s*:\s*$", re.IGNORECASE | re.MULTILINE),
+    re.compile(
+        r"(?:name|email|username|branch|message|description)\s*:\s*$", re.IGNORECASE | re.MULTILINE
+    ),
     re.compile(r"(?:password|token|api.?key)\s*:\s*$", re.IGNORECASE | re.MULTILINE),
 ]
 
@@ -81,10 +83,11 @@ ECHO_SUPPRESS_MS = 500  # ms to suppress detection after injection
 @dataclass
 class DetectorState:
     """Mutable state carried across successive buffer chunks for one session."""
+
     last_output_time: float = field(default_factory=time.monotonic)
-    injection_time: float = 0.0          # monotonic timestamp of last injection
-    stable_excerpt: str = ""             # Last stable text before ANSI redraws
-    silence_threshold_s: float = 3.0    # Signal 3 threshold
+    injection_time: float = 0.0  # monotonic timestamp of last injection
+    stable_excerpt: str = ""  # Last stable text before ANSI redraws
+    silence_threshold_s: float = 3.0  # Signal 3 threshold
 
 
 class PromptDetector:

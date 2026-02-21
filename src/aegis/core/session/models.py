@@ -29,22 +29,20 @@ class Session:
     """Represents one CLI tool session managed by Aegis."""
 
     session_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    tool: str = ""                     # Adapter name (e.g. "claude", "openai")
+    tool: str = ""  # Adapter name (e.g. "claude", "openai")
     command: list[str] = field(default_factory=list)
     cwd: str = ""
     pid: int = -1
     status: SessionStatus = SessionStatus.STARTING
-    started_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     ended_at: str = ""
     exit_code: int | None = None
 
     # Metadata
-    label: str = ""                    # Optional human label (e.g. git branch name)
+    label: str = ""  # Optional human label (e.g. git branch name)
     channel_message_ids: dict[str, str] = field(default_factory=dict)
-    active_prompt_id: str = ""         # prompt_id of current active prompt, or ""
-    prompt_count: int = 0              # Total prompts seen this session
+    active_prompt_id: str = ""  # prompt_id of current active prompt, or ""
+    prompt_count: int = 0  # Total prompts seen this session
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def mark_running(self, pid: int) -> None:

@@ -47,13 +47,15 @@ class PromptEvent:
     session_id: str
     prompt_type: PromptType
     confidence: Confidence
-    excerpt: str              # Redacted/truncated display text for channel
-    choices: list[str] = field(default_factory=list)   # For MULTIPLE_CHOICE / YES_NO
+    excerpt: str  # Redacted/truncated display text for channel
+    choices: list[str] = field(default_factory=list)  # For MULTIPLE_CHOICE / YES_NO
     constraints: dict[str, Any] = field(default_factory=dict)  # e.g. {"max_length": 50}
     idempotency_key: str = field(default_factory=lambda: secrets.token_hex(8))
-    timestamp: str = ""       # ISO8601 — set on creation
-    raw_bytes: bytes = field(default=b"", repr=False)   # Original terminal bytes (not sent to channel)
-    ttl_seconds: int = 300    # Default 5 min TTL
+    timestamp: str = ""  # ISO8601 — set on creation
+    raw_bytes: bytes = field(
+        default=b"", repr=False
+    )  # Original terminal bytes (not sent to channel)
+    ttl_seconds: int = 300  # Default 5 min TTL
 
     @classmethod
     def create(
@@ -68,6 +70,7 @@ class PromptEvent:
         ttl_seconds: int = 300,
     ) -> "PromptEvent":
         from datetime import datetime, timezone
+
         return cls(
             prompt_id=secrets.token_hex(12),
             session_id=session_id,
@@ -88,8 +91,8 @@ class Reply:
 
     prompt_id: str
     session_id: str
-    value: str                  # Normalized value to inject into stdin
-    nonce: str                  # One-time token; duplicate nonces rejected
-    channel_identity: str       # e.g. "telegram:123456789"
-    timestamp: str              # ISO8601
+    value: str  # Normalized value to inject into stdin
+    nonce: str  # One-time token; duplicate nonces rejected
+    channel_identity: str  # e.g. "telegram:123456789"
+    timestamp: str  # ISO8601
     newline_policy: str = "append"  # "append" | "none" | "replace"

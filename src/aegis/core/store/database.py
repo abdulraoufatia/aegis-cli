@@ -146,7 +146,9 @@ class Database:
     # Sessions
     # ------------------------------------------------------------------
 
-    def save_session(self, session_id: str, tool: str, command: list[str], cwd: str = "", label: str = "") -> None:
+    def save_session(
+        self, session_id: str, tool: str, command: list[str], cwd: str = "", label: str = ""
+    ) -> None:
         self._db.execute(
             """
             INSERT INTO sessions (id, tool, command, cwd, label, status)
@@ -162,14 +164,13 @@ class Database:
         columns = ", ".join(f"{k} = ?" for k in kwargs)
         values = list(kwargs.values()) + [session_id]
         self._db.execute(
-            f"UPDATE sessions SET {columns} WHERE id = ?", values  # noqa: S608
+            f"UPDATE sessions SET {columns} WHERE id = ?",
+            values,  # noqa: S608
         )
         self._db.commit()
 
     def get_session(self, session_id: str) -> sqlite3.Row | None:
-        return self._db.execute(
-            "SELECT * FROM sessions WHERE id = ?", (session_id,)
-        ).fetchone()
+        return self._db.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
 
     def list_active_sessions(self) -> list[sqlite3.Row]:
         return self._db.execute(
@@ -198,8 +199,16 @@ class Database:
                channel_message_id, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'awaiting_reply')
             """,
-            (prompt_id, session_id, prompt_type, confidence, excerpt,
-             nonce, expires_at, channel_message_id),
+            (
+                prompt_id,
+                session_id,
+                prompt_type,
+                confidence,
+                excerpt,
+                nonce,
+                expires_at,
+                channel_message_id,
+            ),
         )
         self._db.commit()
 
@@ -238,9 +247,7 @@ class Database:
         return cur.rowcount
 
     def get_prompt(self, prompt_id: str) -> sqlite3.Row | None:
-        return self._db.execute(
-            "SELECT * FROM prompts WHERE id = ?", (prompt_id,)
-        ).fetchone()
+        return self._db.execute("SELECT * FROM prompts WHERE id = ?", (prompt_id,)).fetchone()
 
     def list_pending_prompts(self, session_id: str = "") -> list[sqlite3.Row]:
         if session_id:
@@ -248,9 +255,7 @@ class Database:
                 "SELECT * FROM prompts WHERE status = 'awaiting_reply' AND session_id = ?",
                 (session_id,),
             ).fetchall()
-        return self._db.execute(
-            "SELECT * FROM prompts WHERE status = 'awaiting_reply'"
-        ).fetchall()
+        return self._db.execute("SELECT * FROM prompts WHERE status = 'awaiting_reply'").fetchall()
 
     def list_expired_pending(self) -> list[sqlite3.Row]:
         return self._db.execute(

@@ -40,7 +40,7 @@ from aegis.core.prompt.models import Confidence, PromptEvent, PromptType, Reply
 logger = logging.getLogger(__name__)
 
 _BASE_URL = "https://api.telegram.org/bot{token}/{method}"
-_POLL_TIMEOUT = 30      # Long-poll timeout (seconds)
+_POLL_TIMEOUT = 30  # Long-poll timeout (seconds)
 _RETRY_BASE_S = 1.0
 _RETRY_MAX_S = 60.0
 
@@ -61,17 +61,16 @@ class TelegramChannel(BaseChannel):
         self._token = bot_token
         self._allowed = set(allowed_user_ids)
         self._reply_queue: asyncio.Queue[Reply] = asyncio.Queue()
-        self._offset = 0          # getUpdates offset
+        self._offset = 0  # getUpdates offset
         self._running = False
-        self._client = None       # httpx.AsyncClient — created in start()
+        self._client = None  # httpx.AsyncClient — created in start()
 
     async def start(self) -> None:
         try:
             import httpx  # type: ignore[import]
         except ImportError as exc:
             raise RuntimeError(
-                "httpx is required for the Telegram channel. "
-                "Install with: pip install httpx"
+                "httpx is required for the Telegram channel. Install with: pip install httpx"
             ) from exc
 
         self._client = httpx.AsyncClient(timeout=_POLL_TIMEOUT + 5)
@@ -113,11 +112,14 @@ class TelegramChannel(BaseChannel):
         session_id: str = "",
     ) -> None:
         for uid in self._allowed:
-            await self._api("editMessageText", {
-                "chat_id": uid,
-                "message_id": int(message_id),
-                "text": new_text,
-            })
+            await self._api(
+                "editMessageText",
+                {
+                    "chat_id": uid,
+                    "message_id": int(message_id),
+                    "text": new_text,
+                },
+            )
 
     async def receive_replies(self) -> AsyncIterator[Reply]:  # type: ignore[override]
         while self._running:
@@ -151,11 +153,14 @@ class TelegramChannel(BaseChannel):
         backoff = _RETRY_BASE_S
         while self._running:
             try:
-                updates = await self._api("getUpdates", {
-                    "offset": self._offset,
-                    "timeout": _POLL_TIMEOUT,
-                    "allowed_updates": ["message", "callback_query"],
-                })
+                updates = await self._api(
+                    "getUpdates",
+                    {
+                        "offset": self._offset,
+                        "timeout": _POLL_TIMEOUT,
+                        "allowed_updates": ["message", "callback_query"],
+                    },
+                )
                 if updates:
                     for update in updates:
                         self._offset = update["update_id"] + 1
@@ -216,8 +221,8 @@ class TelegramChannel(BaseChannel):
         # Free-text reply: nonce is derived from message_id for idempotency
         nonce = secrets.token_hex(8)
         reply = Reply(
-            prompt_id="",        # Router resolves the active prompt for this session
-            session_id="",       # Router resolves by active session
+            prompt_id="",  # Router resolves the active prompt for this session
+            session_id="",  # Router resolves by active session
             value=text,
             nonce=nonce,
             channel_identity=f"telegram:{user_id}",
@@ -269,23 +274,30 @@ class TelegramChannel(BaseChannel):
         base = f"ans:{event.prompt_id}:{event.session_id}:{event.idempotency_key}"
 
         if event.prompt_type == PromptType.TYPE_YES_NO:
-            return [[
-                {"text": "Yes", "callback_data": f"{base}:y"},
-                {"text": "No",  "callback_data": f"{base}:n"},
-            ]]
+            return [
+                [
+                    {"text": "Yes", "callback_data": f"{base}:y"},
+                    {"text": "No", "callback_data": f"{base}:n"},
+                ]
+            ]
         if event.prompt_type == PromptType.TYPE_CONFIRM_ENTER:
-            return [[
-                {"text": "Send Enter", "callback_data": f"{base}:enter"},
-                {"text": "Cancel",     "callback_data": f"{base}:cancel"},
-            ]]
+            return [
+                [
+                    {"text": "Send Enter", "callback_data": f"{base}:enter"},
+                    {"text": "Cancel", "callback_data": f"{base}:cancel"},
+                ]
+            ]
         if event.prompt_type == PromptType.TYPE_MULTIPLE_CHOICE:
-            return [[
-                {"text": str(i + 1), "callback_data": f"{base}:{i + 1}"}
-                for i in range(len(event.choices))
-            ]]
+            return [
+                [
+                    {"text": str(i + 1), "callback_data": f"{base}:{i + 1}"}
+                    for i in range(len(event.choices))
+                ]
+            ]
         return []  # FREE_TEXT: no buttons; user replies via message
 
 
 def _utcnow() -> str:
     from datetime import datetime, timezone
+
     return datetime.now(timezone.utc).isoformat()

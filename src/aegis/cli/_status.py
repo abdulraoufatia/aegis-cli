@@ -1,4 +1,5 @@
 """aegis status — daemon and session status."""
+
 from __future__ import annotations
 import json
 from rich.console import Console

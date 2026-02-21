@@ -1,4 +1,5 @@
 """aegis doctor — environment and configuration health check."""
+
 from __future__ import annotations
 import json
 import sys

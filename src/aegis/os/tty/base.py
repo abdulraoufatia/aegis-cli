@@ -29,13 +29,13 @@ from typing import AsyncIterator
 class PTYConfig:
     """Configuration for a PTY session."""
 
-    command: list[str]                      # argv to exec
+    command: list[str]  # argv to exec
     env: dict[str, str] = field(default_factory=dict)
     cwd: str = ""
     cols: int = 220
     rows: int = 50
-    read_timeout_s: float = 0.05           # Max seconds to block on PTY read
-    max_buffer_bytes: int = 4096           # Rolling output buffer size
+    read_timeout_s: float = 0.05  # Max seconds to block on PTY read
+    max_buffer_bytes: int = 4096  # Rolling output buffer size
     stall_watchdog_interval_s: float = 1.0  # How often to call check_silence
 
 

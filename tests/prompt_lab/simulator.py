@@ -54,6 +54,7 @@ logger = logging.getLogger(__name__)
 # Telegram stub
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TelegramMessage:
     chat_id: int
@@ -91,14 +92,16 @@ class TelegramStub:
         """Inject a callback_query update (simulates button tap)."""
         uid = update_id if update_id is not None else self._update_id
         self._update_id = uid + 1
-        await self._callback_queue.put({
-            "update_id": uid,
-            "callback_query": {
-                "id": str(uid),
-                "from": {"id": user_id},
-                "data": callback_data,
-            },
-        })
+        await self._callback_queue.put(
+            {
+                "update_id": uid,
+                "callback_query": {
+                    "id": str(uid),
+                    "from": {"id": user_id},
+                    "data": callback_data,
+                },
+            }
+        )
 
     def simulate_outage(self, seconds: float) -> None:
         """Make all API calls fail for *seconds* seconds."""
@@ -118,12 +121,14 @@ class TelegramStub:
 
         msg_id = self._next_message_id
         self._next_message_id += 1
-        self.messages.append(TelegramMessage(
-            chat_id=chat_id,
-            text=text,
-            reply_markup=kwargs.get("reply_markup"),
-            message_id=msg_id,
-        ))
+        self.messages.append(
+            TelegramMessage(
+                chat_id=chat_id,
+                text=text,
+                reply_markup=kwargs.get("reply_markup"),
+                message_id=msg_id,
+            )
+        )
 
         # Auto-reply: parse callback_data from keyboard and deliver automatically
         if self._auto_reply_value is not None:
@@ -157,6 +162,7 @@ class TelegramStub:
 # ---------------------------------------------------------------------------
 # PTY simulator
 # ---------------------------------------------------------------------------
+
 
 class PTYSimulator:
     """
@@ -198,9 +204,11 @@ class PTYSimulator:
 # Scenario interface
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ScenarioResults:
     """Results collected during a scenario run."""
+
     scenario_id: str = ""
     name: str = ""
     passed: bool = False
@@ -226,8 +234,8 @@ class ScenarioResults:
 class LabScenario:
     """Base class for all Prompt Lab scenarios."""
 
-    scenario_id: str = ""       # e.g. "QA-001"
-    name: str = ""              # e.g. "partial-line-prompt"
+    scenario_id: str = ""  # e.g. "QA-001"
+    name: str = ""  # e.g. "partial-line-prompt"
     platforms: list[str] = field(default_factory=lambda: ["macos", "linux"])
 
     async def setup(self, pty: PTYSimulator, stub: TelegramStub) -> None:
@@ -247,6 +255,7 @@ class LabScenario:
 # ---------------------------------------------------------------------------
 # Scenario registry
 # ---------------------------------------------------------------------------
+
 
 class ScenarioRegistry:
     """Auto-discovers and stores LabScenario subclasses."""
@@ -273,7 +282,8 @@ class ScenarioRegistry:
     @classmethod
     def filter(cls, pattern: str) -> dict[str, type[LabScenario]]:
         return {
-            name: sc for name, sc in cls._scenarios.items()
+            name: sc
+            for name, sc in cls._scenarios.items()
             if fnmatch.fnmatch(sc.scenario_id, pattern) or fnmatch.fnmatch(name, pattern)
         }
 
@@ -295,6 +305,7 @@ class ScenarioRegistry:
 # ---------------------------------------------------------------------------
 # Simulator
 # ---------------------------------------------------------------------------
+
 
 class Simulator:
     """

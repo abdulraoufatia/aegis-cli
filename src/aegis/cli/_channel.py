@@ -1,4 +1,5 @@
 """aegis channel add — add/reconfigure a notification channel."""
+
 from __future__ import annotations
 from rich.console import Console
 

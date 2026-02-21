@@ -22,19 +22,29 @@ from aegis.core.prompt.models import PromptEvent, PromptStatus
 
 
 VALID_TRANSITIONS: dict[PromptStatus, set[PromptStatus]] = {
-    PromptStatus.CREATED:         {PromptStatus.ROUTED, PromptStatus.FAILED, PromptStatus.CANCELED},
-    PromptStatus.ROUTED:          {PromptStatus.AWAITING_REPLY, PromptStatus.EXPIRED, PromptStatus.FAILED},
-    PromptStatus.AWAITING_REPLY:  {PromptStatus.REPLY_RECEIVED, PromptStatus.EXPIRED, PromptStatus.CANCELED, PromptStatus.FAILED},
-    PromptStatus.REPLY_RECEIVED:  {PromptStatus.INJECTED, PromptStatus.FAILED},
-    PromptStatus.INJECTED:        {PromptStatus.RESOLVED, PromptStatus.FAILED},
+    PromptStatus.CREATED: {PromptStatus.ROUTED, PromptStatus.FAILED, PromptStatus.CANCELED},
+    PromptStatus.ROUTED: {PromptStatus.AWAITING_REPLY, PromptStatus.EXPIRED, PromptStatus.FAILED},
+    PromptStatus.AWAITING_REPLY: {
+        PromptStatus.REPLY_RECEIVED,
+        PromptStatus.EXPIRED,
+        PromptStatus.CANCELED,
+        PromptStatus.FAILED,
+    },
+    PromptStatus.REPLY_RECEIVED: {PromptStatus.INJECTED, PromptStatus.FAILED},
+    PromptStatus.INJECTED: {PromptStatus.RESOLVED, PromptStatus.FAILED},
     # Terminal — no outgoing transitions
-    PromptStatus.RESOLVED:        set(),
-    PromptStatus.EXPIRED:         set(),
-    PromptStatus.CANCELED:        set(),
-    PromptStatus.FAILED:          set(),
+    PromptStatus.RESOLVED: set(),
+    PromptStatus.EXPIRED: set(),
+    PromptStatus.CANCELED: set(),
+    PromptStatus.FAILED: set(),
 }
 
-TERMINAL_STATES = {PromptStatus.RESOLVED, PromptStatus.EXPIRED, PromptStatus.CANCELED, PromptStatus.FAILED}
+TERMINAL_STATES = {
+    PromptStatus.RESOLVED,
+    PromptStatus.EXPIRED,
+    PromptStatus.CANCELED,
+    PromptStatus.FAILED,
+}
 
 
 @dataclass
@@ -49,6 +59,7 @@ class PromptStateMachine:
 
     def __post_init__(self) -> None:
         from datetime import timedelta
+
         self.expires_at = datetime.now(timezone.utc) + timedelta(seconds=self.event.ttl_seconds)
 
     @property

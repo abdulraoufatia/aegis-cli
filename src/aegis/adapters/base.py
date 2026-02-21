@@ -133,6 +133,7 @@ class BaseAdapter(ABC):
 
 class _AdapterRegistryMeta(type):
     """Metaclass that maintains the adapter registry."""
+
     _registry: dict[str, type[BaseAdapter]] = {}
 
 
@@ -142,18 +143,18 @@ class AdapterRegistry(metaclass=_AdapterRegistryMeta):
     @classmethod
     def register(cls, name: str):  # type: ignore[return]
         """Decorator: @AdapterRegistry.register("claude")"""
+
         def decorator(adapter_cls: type[BaseAdapter]) -> type[BaseAdapter]:
             cls._registry[name] = adapter_cls
             return adapter_cls
+
         return decorator
 
     @classmethod
     def get(cls, name: str) -> type[BaseAdapter]:
         if name not in cls._registry:
             available = ", ".join(sorted(cls._registry.keys())) or "(none)"
-            raise KeyError(
-                f"Unknown adapter: {name!r}. Available: {available}"
-            )
+            raise KeyError(f"Unknown adapter: {name!r}. Available: {available}")
         return cls._registry[name]
 
     @classmethod

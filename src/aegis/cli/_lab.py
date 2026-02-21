@@ -1,4 +1,5 @@
 """aegis lab — Prompt Lab CLI commands."""
+
 from __future__ import annotations
 import json
 from rich.console import Console
@@ -6,14 +7,12 @@ from rich.console import Console
 
 def cmd_lab_list(as_json: bool, console: Console) -> None:
     from tests.prompt_lab.simulator import ScenarioRegistry
+
     ScenarioRegistry.discover()
     scenarios = ScenarioRegistry.list_all()
 
     if as_json:
-        rows = [
-            {"id": cls.scenario_id, "name": name}
-            for name, cls in scenarios.items()
-        ]
+        rows = [{"id": cls.scenario_id, "name": name} for name, cls in scenarios.items()]
         print(json.dumps(rows, indent=2))
         return
 
@@ -24,7 +23,7 @@ def cmd_lab_list(as_json: bool, console: Console) -> None:
         return
 
     console.print(f"  {'QA ID':<10} {'Name':<35} Status")
-    console.print(f"  {'─'*10} {'─'*35} {'─'*10}")
+    console.print(f"  {'─' * 10} {'─' * 35} {'─' * 10}")
     for name, cls in sorted(scenarios.items(), key=lambda x: x[1].scenario_id):
         console.print(f"  {cls.scenario_id:<10} {name:<35} [green]registered[/green]")
     console.print(f"\n{len(scenarios)} scenarios registered.")
@@ -75,20 +74,27 @@ def cmd_lab_run(
             passed += 1
 
     if as_json:
-        print(json.dumps(
-            [{"id": r.scenario_id, "name": r.name, "passed": r.passed,
-              "elapsed_ms": r.elapsed_ms, "error": r.error}
-             for r in all_results],
-            indent=2,
-        ))
+        print(
+            json.dumps(
+                [
+                    {
+                        "id": r.scenario_id,
+                        "name": r.name,
+                        "passed": r.passed,
+                        "elapsed_ms": r.elapsed_ms,
+                        "error": r.error,
+                    }
+                    for r in all_results
+                ],
+                indent=2,
+            )
+        )
         return
 
     console.print()
     for r in all_results:
         status = "[green]PASS[/green]" if r.passed else "[red]FAIL[/red]"
-        console.print(
-            f"  {r.scenario_id:<10} {r.name:<35} {status}  ({r.elapsed_ms:.0f}ms)"
-        )
+        console.print(f"  {r.scenario_id:<10} {r.name:<35} {status}  ({r.elapsed_ms:.0f}ms)")
         if not r.passed and r.error:
             console.print(f"             [dim]{r.error}[/dim]")
 
