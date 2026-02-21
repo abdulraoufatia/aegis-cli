@@ -346,6 +346,12 @@ Key starting points:
 | [architecture.md](docs/architecture.md) | System design, data flow, invariants |
 | [troubleshooting.md](docs/troubleshooting.md) | Common issues and solutions |
 | [ethics-and-safety-guarantees.md](docs/ethics-and-safety-guarantees.md) | Safety invariants and CI enforcement |
+| [enterprise-architecture.md](docs/enterprise-architecture.md) | Enterprise governance overview (Phase A) |
+| [enterprise-dashboard-product-spec.md](docs/enterprise-dashboard-product-spec.md) | Phase C dashboard product spec (design only) |
+| [enterprise-dashboard-ui-map.md](docs/enterprise-dashboard-ui-map.md) | Phase C dashboard UI wireframes (design only) |
+| [enterprise-governance-api-spec.md](docs/enterprise-governance-api-spec.md) | Phase C governance API spec (design only) |
+| [enterprise-data-model.md](docs/enterprise-data-model.md) | Phase C cloud data model (design only) |
+| [enterprise-dashboard-threat-model.md](docs/enterprise-dashboard-threat-model.md) | Phase C dashboard threat model (design only) |
 
 ---
 
