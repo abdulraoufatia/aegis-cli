@@ -279,3 +279,56 @@ Policy module layout:
 | v0.8.5 | Phase 1 Kernel | Released | Phase 1 Core Runtime Kernel — all exit criteria pass, 677 tests, doctor DB+adapter checks |
 | v0.9.0 | Windows | Planned | ConPTY experimental (behind --experimental flag) |
 | v1.0.0 | GA | Planned | Stable adapter + channel API, all platforms, all agents |
+
+---
+
+## Engineering Memory System
+
+### Auto-Update Engineering Memory (MANDATORY)
+
+**Update memory files continuously while working — not at the end.**
+
+This repository is an evolving agent infrastructure platform. Memory must capture engineering state, not just chat context.
+
+| Trigger | Action |
+|---------|--------|
+| Architecture decision made | Update `memory-decisions.md` with date, context, and tradeoffs |
+| Phase milestone reached (Phase 1/2/3) | Update `memory-roadmap.md` |
+| Bug root cause identified | Update `memory-debugging.md` |
+| New subsystem introduced | Update `memory-architecture.md` |
+| Developer workflow improvement | Update `memory-devex.md` |
+| Completing substantive engineering work | Add entry to `memory-sessions.md` |
+| Reliability/infra learning | Update `memory-reliability.md` |
+| Testing strategy change | Update `memory-testing.md` |
+
+**Skip:**
+- Trivial commands
+- Quick factual Q&A
+- One-line fixes
+- Temporary experiments
+
+**DO NOT ASK. Update memory files automatically when engineering knowledge is gained.**
+
+### Engineering Memory Principles
+
+1. Capture WHY decisions were made, not just WHAT changed.
+2. Treat memory as long-term system intelligence.
+3. Write for future contributors.
+4. Prefer concise, structured entries.
+5. Date all decision entries.
+6. Never store secrets, tokens, or personal data.
+
+### Memory File Reference
+
+All memory files live in the auto-memory directory (see system prompt for path).
+
+| File | Purpose |
+|------|---------|
+| `memory-architecture.md` | Subsystem descriptions, component boundaries, data flow |
+| `memory-decisions.md` | Dated architecture and design decisions with tradeoffs |
+| `memory-debugging.md` | Root cause analyses, recurring error patterns, fix strategies |
+| `memory-devex.md` | Developer workflow improvements, tooling notes, CI learnings |
+| `memory-reliability.md` | Infra learnings, failure modes, resilience patterns |
+| `memory-testing.md` | Testing strategy, coverage patterns, mock techniques |
+| `memory-roadmap.md` | Phase progress, milestone tracking, version history |
+| `memory-sessions.md` | Engineering session log — substantive work completed per session |
