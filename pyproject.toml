@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "atlasbridge"
 version = "0.6.1"
-description = "Universal human-in-the-loop control plane for AI developer agents — forward prompts to your phone, reply from anywhere"
+description = "Policy-driven autonomous runtime for AI CLI agents — deterministic rule evaluation, built-in human escalation"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "AtlasBridge Contributors" }]
-keywords = ["ai", "cli", "telegram", "relay", "interactive", "claude", "pty", "remote"]
+keywords = ["ai", "cli", "policy", "autonomous", "agent", "claude", "pty", "telegram", "escalation"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Environment :: Console",
