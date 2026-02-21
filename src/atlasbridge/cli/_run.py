@@ -8,8 +8,10 @@ import sys
 from rich.console import Console
 
 
-def cmd_run(tool: str, command: list[str], label: str, cwd: str, console: Console) -> None:
-    """Load config and run the tool under Aegis supervision (foreground)."""
+def cmd_run(
+    tool: str, command: list[str], label: str, cwd: str, console: Console, policy_file: str = ""
+) -> None:
+    """Load config and run the tool under AtlasBridge supervision (foreground)."""
     import atlasbridge.adapters  # noqa: F401 — registers all built-in adapters
     from atlasbridge.adapters.base import AdapterRegistry
     from atlasbridge.core.config import load_config
@@ -47,24 +49,49 @@ def cmd_run(tool: str, command: list[str], label: str, cwd: str, console: Consol
     console.print(f"Session will forward prompts via {channel_str}")
     console.print("Press Ctrl+C to stop.\n")
 
+    # Validate policy file if provided
+    if policy_file:
+        from atlasbridge.core.policy.parser import PolicyParseError, load_policy
+
+        try:
+            load_policy(policy_file)
+        except PolicyParseError as exc:
+            console.print(f"[red]Policy error:[/red] {exc}")
+            sys.exit(1)
+
     try:
-        asyncio.run(_run_async(tool=tool, command=command, label=label, cwd=cwd, config=config))
+        asyncio.run(
+            _run_async(
+                tool=tool,
+                command=command,
+                label=label,
+                cwd=cwd,
+                config=config,
+                policy_file=policy_file,
+            )
+        )
     except KeyboardInterrupt:
         console.print("\n[yellow]Interrupted.[/yellow]")
         sys.exit(0)
 
 
-async def _run_async(tool: str, command: list[str], label: str, cwd: str, config: object) -> None:
+async def _run_async(
+    tool: str, command: list[str], label: str, cwd: str, config: object, policy_file: str = ""
+) -> None:
     from atlasbridge.core.daemon.manager import DaemonManager
 
     # Convert AtlasBridgeConfig to the dict format DaemonManager expects
-    cfg_dict = _config_to_dict(tool=tool, command=command, label=label, cwd=cwd, config=config)
+    cfg_dict = _config_to_dict(
+        tool=tool, command=command, label=label, cwd=cwd, config=config, policy_file=policy_file
+    )
 
     manager = DaemonManager(cfg_dict)
     await manager.start()
 
 
-def _config_to_dict(tool: str, command: list[str], label: str, cwd: str, config: object) -> dict:
+def _config_to_dict(
+    tool: str, command: list[str], label: str, cwd: str, config: object, policy_file: str = ""
+) -> dict:
     """Convert AtlasBridgeConfig + run params into the DaemonManager config dict."""
     from pathlib import Path
 
@@ -84,7 +111,7 @@ def _config_to_dict(tool: str, command: list[str], label: str, cwd: str, config:
             "allowed_user_ids": config.slack.allowed_users,  # type: ignore[union-attr]
         }
 
-    return {
+    result: dict = {
         "data_dir": str(db_path.parent),
         "tool": tool,
         "command": command,
@@ -96,3 +123,6 @@ def _config_to_dict(tool: str, command: list[str], label: str, cwd: str, config:
             "stuck_timeout_seconds": config.prompts.stuck_timeout_seconds,  # type: ignore[union-attr]
         },
     }
+    if policy_file:
+        result["policy_file"] = policy_file
+    return result
