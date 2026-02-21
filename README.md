@@ -171,6 +171,18 @@ You'll need a Slack App with Socket Mode enabled, a bot token (`xoxb-*`), and an
 
 > **Need help getting tokens?** See the [Channel Token Setup Guide](docs/channel-token-setup.md) for step-by-step instructions, or press **H** inside the TUI setup wizard.
 
+### Option C — Non-Interactive Setup (CI/Docker)
+
+Set environment variables and run:
+
+```bash
+export ATLASBRIDGE_TELEGRAM_BOT_TOKEN="123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi"
+export ATLASBRIDGE_TELEGRAM_ALLOWED_USERS="12345678"
+atlasbridge setup --from-env
+```
+
+See [Non-Interactive Setup Guide](docs/setup-noninteractive.md) for Docker, CI, and keyring examples.
+
 ### 2. Run your AI agent under supervision
 
 ```bash

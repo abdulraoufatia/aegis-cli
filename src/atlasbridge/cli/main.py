@@ -81,9 +81,12 @@ def ui() -> None:
 @cli.command()
 @click.option("--channel", type=click.Choice(["telegram", "slack"]), default="telegram")
 @click.option("--non-interactive", is_flag=True, default=False, help="Read from env vars only")
+@click.option(
+    "--from-env", is_flag=True, default=False, help="Build config from ATLASBRIDGE_* env vars"
+)
 @click.option("--token", default="", help="Telegram bot token (non-interactive mode)")
 @click.option("--users", default="", help="Comma-separated allowed Telegram user IDs")
-def setup(channel: str, non_interactive: bool, token: str, users: str) -> None:
+def setup(channel: str, non_interactive: bool, from_env: bool, token: str, users: str) -> None:
     """Interactive first-time configuration wizard."""
     from atlasbridge.cli._setup import run_setup
 
@@ -93,6 +96,7 @@ def setup(channel: str, non_interactive: bool, token: str, users: str) -> None:
         console=console,
         token=token,
         users=users,
+        from_env=from_env,
     )
 
 
@@ -139,12 +143,27 @@ def status(as_json: bool) -> None:
 @click.argument("tool_args", nargs=-1, type=click.UNPROCESSED)
 @click.option("--session-label", default="", help="Human-readable label for this session")
 @click.option("--cwd", default="", help="Working directory for the tool")
-def run(tool: str, tool_args: tuple[str, ...], session_label: str, cwd: str) -> None:
+@click.option(
+    "--policy",
+    "policy_file",
+    default="",
+    help="Path to a policy YAML file (v0 or v1) for this session.",
+)
+def run(
+    tool: str, tool_args: tuple[str, ...], session_label: str, cwd: str, policy_file: str
+) -> None:
     """Launch a CLI tool under AtlasBridge supervision."""
     from atlasbridge.cli._run import cmd_run
 
     command = [tool] + list(tool_args)
-    cmd_run(tool=tool, command=command, label=session_label, cwd=cwd, console=console)
+    cmd_run(
+        tool=tool,
+        command=command,
+        label=session_label,
+        cwd=cwd,
+        policy_file=policy_file,
+        console=console,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -349,6 +368,15 @@ def version(as_json: bool, verbose: bool, experimental: bool) -> None:
         for flag, enabled in flags.items():
             status = "[green]enabled[/green]" if enabled else "[dim]disabled[/dim]"
             console.print(f"  {flag:<22} {status}")
+
+
+# ---------------------------------------------------------------------------
+# config
+# ---------------------------------------------------------------------------
+
+from atlasbridge.cli._config_cmd import config_group  # noqa: E402
+
+cli.add_command(config_group)
 
 
 # ---------------------------------------------------------------------------

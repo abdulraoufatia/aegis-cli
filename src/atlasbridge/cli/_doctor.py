@@ -168,25 +168,83 @@ def _check_systemd_service() -> dict | None:
 
 
 def _fix_config(console: Console) -> None:
-    """Create a minimal config skeleton if no config file exists."""
+    """Create a config from env vars if available, or a skeleton template."""
+    import os
+    import re
+
     cfg_path = _config_path()
     if cfg_path.exists():
         return
-    try:
-        cfg_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        cfg_path.write_text(
-            "# AtlasBridge configuration — edit then run: atlasbridge setup\n"
-            "# See: https://github.com/abdulraoufatia/atlasbridge\n\n"
-            "[telegram]\n"
-            '# bot_token = "<YOUR_BOT_TOKEN>"\n'
-            "# allowed_users = [<YOUR_TELEGRAM_USER_ID>]\n",
-            encoding="utf-8",
-        )
-        cfg_path.chmod(0o600)
-        console.print(f"  [green]FIX[/green]  Created config skeleton at {cfg_path}")
-        console.print("          Edit the file then run: atlasbridge setup")
-    except OSError as exc:
-        console.print(f"  [red]ERR[/red]  Cannot create config at {cfg_path}: {exc}")
+
+    def _env(*names: str) -> str:
+        for name in names:
+            v = os.environ.get(name, "")
+            if v:
+                return v
+        return ""
+
+    config_data: dict = {}
+
+    # Try Telegram env vars
+    tg_token = _env("ATLASBRIDGE_TELEGRAM_BOT_TOKEN", "AEGIS_TELEGRAM_BOT_TOKEN")
+    tg_users = _env("ATLASBRIDGE_TELEGRAM_ALLOWED_USERS", "AEGIS_TELEGRAM_ALLOWED_USERS")
+    if tg_token and tg_users:
+        try:
+            users_list = [int(u.strip()) for u in tg_users.split(",") if u.strip()]
+            if users_list and re.fullmatch(r"\d{8,12}:[A-Za-z0-9_\-]{35,}", tg_token.strip()):
+                config_data["telegram"] = {
+                    "bot_token": tg_token.strip(),
+                    "allowed_users": users_list,
+                }
+        except ValueError:
+            pass
+
+    # Try Slack env vars
+    slack_bot = _env("ATLASBRIDGE_SLACK_BOT_TOKEN", "AEGIS_SLACK_BOT_TOKEN")
+    slack_app = _env("ATLASBRIDGE_SLACK_APP_TOKEN", "AEGIS_SLACK_APP_TOKEN")
+    slack_users = _env("ATLASBRIDGE_SLACK_ALLOWED_USERS", "AEGIS_SLACK_ALLOWED_USERS")
+    if slack_bot and slack_app and slack_users:
+        parsed = [u.strip() for u in slack_users.split(",") if u.strip()]
+        bot_ok = re.fullmatch(r"xoxb-[A-Za-z0-9\-]+", slack_bot)
+        app_ok = re.fullmatch(r"xapp-[A-Za-z0-9\-]+", slack_app)
+        if parsed and bot_ok and app_ok:
+            config_data["slack"] = {
+                "bot_token": slack_bot,
+                "app_token": slack_app,
+                "allowed_users": parsed,
+            }
+
+    if config_data:
+        from atlasbridge.core.config import save_config
+
+        try:
+            save_config(config_data, cfg_path)
+            console.print(
+                f"  [green]FIX[/green]  Created config from environment variables at {cfg_path}"
+            )
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"  [red]ERR[/red]  Cannot write config: {exc}")
+    else:
+        try:
+            cfg_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            cfg_path.write_text(
+                "# AtlasBridge configuration\n"
+                "# Option 1: Edit this file, then run: atlasbridge setup\n"
+                "# Option 2: Set env vars, then run: atlasbridge setup --from-env\n"
+                "#   ATLASBRIDGE_TELEGRAM_BOT_TOKEN, ATLASBRIDGE_TELEGRAM_ALLOWED_USERS\n\n"
+                "config_version = 1\n\n"
+                "[telegram]\n"
+                '# bot_token = "<YOUR_BOT_TOKEN>"\n'
+                "# allowed_users = [<YOUR_TELEGRAM_USER_ID>]\n",
+                encoding="utf-8",
+            )
+            cfg_path.chmod(0o600)
+            console.print(f"  [green]FIX[/green]  Created config skeleton at {cfg_path}")
+            console.print(
+                "          Edit the file or set env vars, then run: atlasbridge doctor --fix"
+            )
+        except OSError as exc:
+            console.print(f"  [red]ERR[/red]  Cannot create config at {cfg_path}: {exc}")
 
 
 def cmd_doctor(fix: bool, as_json: bool, console: Console) -> None:

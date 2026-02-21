@@ -198,6 +198,7 @@ class AdaptersConfig(BaseModel):
 class AtlasBridgeConfig(BaseModel):
     """Root AtlasBridge configuration model."""
 
+    config_version: int = 1
     telegram: TelegramConfig | None = None
     slack: SlackConfig | None = None
     prompts: PromptsConfig = Field(default_factory=PromptsConfig)
@@ -274,6 +275,21 @@ def load_config(path: Path | str | None = None) -> AtlasBridgeConfig:
     except Exception as exc:
         raise ConfigError(f"Cannot read config file {cfg_path}: {exc}") from exc
 
+    # Auto-migrate old config versions
+    from atlasbridge.core.config_migrate import (
+        CURRENT_CONFIG_VERSION,
+        detect_version,
+        upgrade_config,
+    )
+
+    detected = detect_version(data)
+    if detected < CURRENT_CONFIG_VERSION:
+        data = upgrade_config(data, detected, CURRENT_CONFIG_VERSION)
+        save_config(data, cfg_path)
+
+    # Resolve keyring placeholders (before env overlays and Pydantic validation)
+    _resolve_keyring_placeholders(data)
+
     # Apply environment variable overrides
     _apply_env_overrides(data)
 
@@ -297,10 +313,23 @@ def _apply_env_overrides(data: dict[str, Any]) -> None:
                 return v
         return ""
 
+    # Telegram
     if token := _env("ATLASBRIDGE_TELEGRAM_BOT_TOKEN", "AEGIS_TELEGRAM_BOT_TOKEN"):
         data.setdefault("telegram", {})["bot_token"] = token
     if users := _env("ATLASBRIDGE_TELEGRAM_ALLOWED_USERS", "AEGIS_TELEGRAM_ALLOWED_USERS"):
         data.setdefault("telegram", {})["allowed_users"] = users
+
+    # Slack
+    if slack_bot := _env("ATLASBRIDGE_SLACK_BOT_TOKEN", "AEGIS_SLACK_BOT_TOKEN"):
+        data.setdefault("slack", {})["bot_token"] = slack_bot
+    if slack_app := _env("ATLASBRIDGE_SLACK_APP_TOKEN", "AEGIS_SLACK_APP_TOKEN"):
+        data.setdefault("slack", {})["app_token"] = slack_app
+    if slack_users := _env("ATLASBRIDGE_SLACK_ALLOWED_USERS", "AEGIS_SLACK_ALLOWED_USERS"):
+        data.setdefault("slack", {})["allowed_users"] = [
+            u.strip() for u in slack_users.split(",") if u.strip()
+        ]
+
+    # General
     if level := _env("ATLASBRIDGE_LOG_LEVEL", "AEGIS_LOG_LEVEL"):
         data.setdefault("logging", {})["level"] = level
     if db := _env("ATLASBRIDGE_DB_PATH", "AEGIS_DB_PATH"):
@@ -309,18 +338,36 @@ def _apply_env_overrides(data: dict[str, Any]) -> None:
         data.setdefault("prompts", {})["timeout_seconds"] = int(timeout)
 
 
-def save_config(config_data: dict[str, Any], path: Path | None = None) -> Path:
+def save_config(
+    config_data: dict[str, Any],
+    path: Path | None = None,
+    *,
+    use_keyring: bool = False,
+) -> Path:
     """Write config dict to TOML file with secure permissions (0600)."""
+    import copy
+
     import tomli_w
+
+    from atlasbridge.core.config_migrate import CURRENT_CONFIG_VERSION
 
     cfg_path = path or _config_file_path()
     cfg_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+
+    # Always stamp the current config version
+    config_data.setdefault("config_version", CURRENT_CONFIG_VERSION)
+
+    # Optionally migrate tokens to OS keyring
+    write_data = config_data
+    if use_keyring:
+        write_data = copy.deepcopy(config_data)
+        _store_tokens_in_keyring(write_data)
 
     # Write atomically
     tmp_path = cfg_path.with_suffix(".tmp")
     try:
         with open(tmp_path, "wb") as f:
-            tomli_w.dump(config_data, f)
+            tomli_w.dump(write_data, f)
         tmp_path.rename(cfg_path)
     except Exception as exc:
         tmp_path.unlink(missing_ok=True)
@@ -329,3 +376,54 @@ def save_config(config_data: dict[str, Any], path: Path | None = None) -> Path:
     # Secure permissions
     cfg_path.chmod(0o600)
     return cfg_path
+
+
+# ---------------------------------------------------------------------------
+# Keyring helpers
+# ---------------------------------------------------------------------------
+
+_KEYRING_TOKEN_FIELDS: list[tuple[str, str]] = [
+    ("telegram", "bot_token"),
+    ("slack", "bot_token"),
+    ("slack", "app_token"),
+]
+
+
+def _resolve_keyring_placeholders(data: dict[str, Any]) -> None:
+    """In-place resolve ``keyring:*`` placeholders to actual tokens."""
+    try:
+        from atlasbridge.core.keyring_store import is_keyring_placeholder, retrieve_token
+    except ImportError:
+        return  # keyring extra not installed — nothing to resolve
+
+    for section, key in _KEYRING_TOKEN_FIELDS:
+        if section not in data or key not in data[section]:
+            continue
+        val = data[section][key]
+        if is_keyring_placeholder(val):
+            resolved = retrieve_token(val)
+            if resolved is None:
+                raise ConfigError(
+                    f"Cannot resolve keyring token for [{section}].{key}. "
+                    f"Placeholder: {val!r}. "
+                    f"Is the keyring unlocked? Try: pip install 'atlasbridge[keyring]'"
+                )
+            data[section][key] = resolved
+
+
+def _store_tokens_in_keyring(data: dict[str, Any]) -> None:
+    """Replace raw token values with keyring placeholders (in-place)."""
+    try:
+        from atlasbridge.core.keyring_store import is_keyring_available, store_token
+    except ImportError:
+        return
+
+    if not is_keyring_available():
+        return
+
+    for section, key in _KEYRING_TOKEN_FIELDS:
+        if section not in data or key not in data[section]:
+            continue
+        token = data[section][key]
+        if isinstance(token, str) and not token.startswith("keyring:"):
+            data[section][key] = store_token(f"{section}_{key}", token)
