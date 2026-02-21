@@ -145,6 +145,14 @@ AtlasBridge is a relay, not a firewall. It does not interpret commands, score ri
 
 ## Changelog
 
+### v0.5.2 — Production UI skeleton
+
+- New `atlasbridge.ui` package: 6 screens with exact widget IDs, `StatusCards` component, `polling.py` (`poll_state()`), and full TCSS
+- `atlasbridge` / `atlasbridge ui` now launch the production UI skeleton (separate from the original `tui/` package, which is preserved for compatibility)
+- WelcomeScreen shows live status cards when configured (Config / Daemon / Channel / Sessions)
+- SetupWizardScreen navigates to a dedicated `SetupCompleteScreen` on finish
+- 12 new smoke tests; 285 total
+
 ### v0.5.1 — Branding fix + lab import fix
 
 - All CLI output now shows "AtlasBridge" — `doctor`, `status`, `setup`, `daemon`, `sessions`, `run`, and `lab` were still printing "Aegis" / "aegis"
@@ -196,7 +204,9 @@ AtlasBridge is a relay, not a firewall. It does not interpret commands, score ri
 | v0.2.0 | Released | macOS MVP — working Telegram relay |
 | v0.3.0 | Released | Linux support, systemd integration |
 | v0.4.0 | Released | Slack channel, MultiChannel fan-out, renamed to AtlasBridge |
-| **v0.5.0** | **Released** | Interactive terminal UI — setup wizard, sessions, logs, doctor |
+| v0.5.0 | Released | Interactive terminal UI — setup wizard, sessions, logs, doctor |
+| v0.5.1 | Released | Branding fix (Aegis→AtlasBridge in CLI output) + lab import fix |
+| **v0.5.2** | **Released** | Production UI skeleton — 6 screens, StatusCards, polling, TCSS |
 | v0.6.0 | Planned | Windows (ConPTY, experimental) |
 
 ---
