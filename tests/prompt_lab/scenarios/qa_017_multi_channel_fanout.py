@@ -14,8 +14,8 @@ from tests.prompt_lab.simulator import (
     ScenarioResults,
     TelegramStub,
 )
-from aegis.channels.multi import MultiChannel
-from aegis.core.prompt.models import PromptEvent, PromptType
+from atlasbridge.channels.multi import MultiChannel
+from atlasbridge.core.prompt.models import PromptEvent, PromptType
 
 
 @ScenarioRegistry.register

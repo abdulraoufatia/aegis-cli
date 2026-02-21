@@ -1,4 +1,4 @@
-# Aegis Reliability and PTY Strategy
+# AtlasBridge Reliability and PTY Strategy
 
 **Version:** 0.2.0
 **Status:** Design
@@ -10,9 +10,9 @@
 
 Phase 1 lives or dies by reliability of interactive interception: no deadlocks, no flaky prompt detection, no misrouted replies, no duplicate injections.
 
-Aegis occupies an unusual position in the software stack. It sits between a user and an AI agent's stdin/stdout, acting as a transparent relay that must make real-time decisions about whether the agent is blocked waiting for input. There is no retry mechanism once a prompt is missed. There is no "undo" once a reply is injected at the wrong moment. Every failure mode has a direct, visible impact on the user's session: either the AI agent hangs indefinitely, or Aegis fires a false alarm and injects garbage into the process at the wrong time.
+AtlasBridge occupies an unusual position in the software stack. It sits between a user and an AI agent's stdin/stdout, acting as a transparent relay that must make real-time decisions about whether the agent is blocked waiting for input. There is no retry mechanism once a prompt is missed. There is no "undo" once a reply is injected at the wrong moment. Every failure mode has a direct, visible impact on the user's session: either the AI agent hangs indefinitely, or AtlasBridge fires a false alarm and injects garbage into the process at the wrong time.
 
-This document defines how Aegis achieves the reliability targets required for Phase 1 to be useful in daily practice.
+This document defines how AtlasBridge achieves the reliability targets required for Phase 1 to be useful in daily practice.
 
 ### Core reliability invariants
 
@@ -27,7 +27,7 @@ This document defines how Aegis achieves the reliability targets required for Ph
 | Failure Mode | Detection | Response |
 |---|---|---|
 | Process exits during prompt wait | pty_reader EOF | Close session, expire pending prompt |
-| Telegram unreachable | httpx timeout (10s) | Retry with exponential backoff; surface via `aegis status` |
+| Telegram unreachable | httpx timeout (10s) | Retry with exponential backoff; surface via `atlasbridge status` |
 | No output for >stuck_timeout_seconds | stall_watchdog fires | Trigger LOW-confidence detection; start ambiguity protocol |
 | Injected reply echoed back to detector | Echo suppression window (500ms) | Suppress detector re-triggering |
 | Multiple concurrent prompt detections | Injection gate (asyncio.Lock) | Queue; process one at a time |
@@ -39,13 +39,13 @@ This document defines how Aegis achieves the reliability targets required for Ph
 
 ### Overview
 
-The PTY Supervisor is the core of Aegis. It launches the target CLI tool inside a pseudoterminal, giving the tool a full TTY environment including ANSI escape sequences, terminal width/height, and interactive line-editing. This is what allows `aegis run claude` to behave identically to running `claude` directly, from the tool's point of view.
+The PTY Supervisor is the core of AtlasBridge. It launches the target CLI tool inside a pseudoterminal, giving the tool a full TTY environment including ANSI escape sequences, terminal width/height, and interactive line-editing. This is what allows `atlasbridge run claude` to behave identically to running `claude` directly, from the tool's point of view.
 
-`ptyprocess` is used to spawn the child process. It wraps `fork()`/`exec()` and connects the child to a PTY slave fd, while Aegis holds the PTY master fd. All of the child's stdout and stderr go through the master fd. Aegis writes to the master fd to deliver stdin to the child.
+`ptyprocess` is used to spawn the child process. It wraps `fork()`/`exec()` and connects the child to a PTY slave fd, while AtlasBridge holds the PTY master fd. All of the child's stdout and stderr go through the master fd. AtlasBridge writes to the master fd to deliver stdin to the child.
 
 ### The 4-task asyncio event loop
 
-`aegis run <tool>` creates a single asyncio event loop. The event loop runs four concurrent tasks for the lifetime of the session. Tasks communicate through shared state on the `PTYSupervisor` object and through an `asyncio.Queue`.
+`atlasbridge run <tool>` creates a single asyncio event loop. The event loop runs four concurrent tasks for the lifetime of the session. Tasks communicate through shared state on the `PTYSupervisor` object and through an `asyncio.Queue`.
 
 ```
 asyncio event loop
@@ -197,7 +197,7 @@ The prompt detector uses three independent signals. Each signal has an associate
 
 ### Signal 1 — Pattern Match
 
-Pattern matching operates on the assembled line deque from the output buffer. For each prompt type, Aegis maintains a list of compiled regex patterns:
+Pattern matching operates on the assembled line deque from the output buffer. For each prompt type, AtlasBridge maintains a list of compiled regex patterns:
 
 | Prompt Type | Example Patterns | Confidence |
 |---|---|---|
@@ -239,10 +239,10 @@ elif only LOW signal:
 
 ### Ambiguity protocol
 
-When detection is ambiguous, Aegis cannot determine with confidence whether the process is waiting for input. Rather than silently hanging or injecting blindly, Aegis sends an explicit notice to Telegram:
+When detection is ambiguous, AtlasBridge cannot determine with confidence whether the process is waiting for input. Rather than silently hanging or injecting blindly, AtlasBridge sends an explicit notice to Telegram:
 
 ```
-Aegis detected a possible input request.
+AtlasBridge detected a possible input request.
 
 Last output (last 200 chars):
   > Do you want to continue with the migration?
@@ -321,10 +321,10 @@ The simulator writes to a PTY master fd and reads from the slave. The `PromptDet
 
 Additional scenarios (QA-010 through QA-017) cover channel-specific behaviors (Slack formatting, multi-user approval, etc.) and are defined in the channel integration test suite, not the Prompt Lab.
 
-### `aegis lab list` output
+### `atlasbridge lab list` output
 
 ```
-Aegis Prompt Lab — Registered Scenarios
+AtlasBridge Prompt Lab — Registered Scenarios
 
 QA ID    Name                         Platform           Status
 QA-001   PartialLinePromptScenario    macos, linux       registered

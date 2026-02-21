@@ -4,13 +4,13 @@
 **Status:** Implemented
 **Last updated:** 2026-02-20
 
-This document specifies how Aegis detects, forwards, and responds to interactive prompts from Claude Code (and compatible AI CLIs).
+This document specifies how AtlasBridge detects, forwards, and responds to interactive prompts from Claude Code (and compatible AI CLIs).
 
 ---
 
 ## 1. Overview
 
-Claude Code (and most interactive CLI tools) occasionally pauses execution and waits for human input. Aegis wraps Claude in a PTY, monitors its output, and when it detects a waiting prompt, forwards it to the user's phone. The user replies. Aegis injects the reply into Claude's stdin. Claude resumes.
+Claude Code (and most interactive CLI tools) occasionally pauses execution and waits for human input. AtlasBridge wraps Claude in a PTY, monitors its output, and when it detects a waiting prompt, forwards it to the user's phone. The user replies. AtlasBridge injects the reply into Claude's stdin. Claude resumes.
 
 The adapter does **not** classify operations as risky or dangerous. It only asks: *"Is the process waiting for input right now, and if so, what kind?"*
 
@@ -216,7 +216,7 @@ aegis run claude
 | Duplicate callback tap | `decide_prompt` returns 0 rows; silent ignore |
 | Expired prompt tapped | "Prompt expired" edit sent to Telegram |
 | PTY child crashes | `pty_reader` exits; event loop tasks cancelled; session marked crashed |
-| Config invalid | `load_config` raises `ConfigError`; `aegis run` exits before spawning |
+| Config invalid | `load_config` raises `ConfigError`; `atlasbridge run` exits before spawning |
 
 ---
 

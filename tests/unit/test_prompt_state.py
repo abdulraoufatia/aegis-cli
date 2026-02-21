@@ -6,8 +6,8 @@ from datetime import UTC
 
 import pytest
 
-from aegis.core.prompt.models import Confidence, PromptEvent, PromptStatus, PromptType
-from aegis.core.prompt.state import TERMINAL_STATES, VALID_TRANSITIONS, PromptStateMachine
+from atlasbridge.core.prompt.models import Confidence, PromptEvent, PromptStatus, PromptType
+from atlasbridge.core.prompt.state import TERMINAL_STATES, VALID_TRANSITIONS, PromptStateMachine
 
 
 def _event(ttl_seconds: int = 300) -> PromptEvent:

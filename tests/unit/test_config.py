@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from aegis.core.config import load_config, save_config
-from aegis.core.exceptions import ConfigError, ConfigNotFoundError
+from atlasbridge.core.config import load_config, save_config
+from atlasbridge.core.exceptions import ConfigError, ConfigNotFoundError
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -131,7 +131,7 @@ class TestPaths:
     def test_default_db_path(self, tmp_path: Path) -> None:
         p = _write_config(tmp_path, MINIMAL_TOML)
         cfg = load_config(p)
-        assert cfg.db_path.name == "aegis.db"
+        assert cfg.db_path.name == "atlasbridge.db"
 
     def test_custom_db_path(self, tmp_path: Path) -> None:
         toml = MINIMAL_TOML + f'\n[database]\npath = "{tmp_path}/custom.db"\n'

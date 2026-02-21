@@ -28,7 +28,7 @@ Closes #<!-- issue number -->
 
 - [ ] Unit tests added/updated
 - [ ] Integration tests added/updated
-- [ ] Manually tested with `aegis doctor`
+- [ ] Manually tested with `atlasbridge doctor`
 - [ ] CI passes locally (`pytest`, `ruff`, `mypy`)
 
 ## Security Considerations

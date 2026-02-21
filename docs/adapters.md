@@ -1,4 +1,4 @@
-# Aegis Adapter Interface Specification
+# AtlasBridge Adapter Interface Specification
 
 **Version:** 0.3.0
 **Status:** Authoritative Design
@@ -8,17 +8,17 @@
 
 ## 1. Purpose
 
-Aegis is a universal human-in-the-loop control plane. It wraps AI CLI tools in a PTY and routes every interactive prompt to a remote channel so the user can respond from anywhere. The core relay logic — detection, routing, injection, persistence, audit — is tool-agnostic. The *adapter* layer is the thin seam that makes this work for any specific CLI.
+AtlasBridge is a universal human-in-the-loop control plane. It wraps AI CLI tools in a PTY and routes every interactive prompt to a remote channel so the user can respond from anywhere. The core relay logic — detection, routing, injection, persistence, audit — is tool-agnostic. The *adapter* layer is the thin seam that makes this work for any specific CLI.
 
 ### Vendor-Neutral Philosophy
 
-Every AI CLI tool presents prompts differently. Claude Code shows approval dialogs in ANSI-styled blocks. A future OpenAI CLI tool might emit bare `>` cursors. A custom Python agent might write `[AWAITING INPUT]` JSON events to stdout. Rather than hard-coding knowledge of one tool into the supervisor, Aegis defines an abstract `BaseAdapter` contract that any tool can satisfy.
+Every AI CLI tool presents prompts differently. Claude Code shows approval dialogs in ANSI-styled blocks. A future OpenAI CLI tool might emit bare `>` cursors. A custom Python agent might write `[AWAITING INPUT]` JSON events to stdout. Rather than hard-coding knowledge of one tool into the supervisor, AtlasBridge defines an abstract `BaseAdapter` contract that any tool can satisfy.
 
 The design goals are:
 
 - **Zero core changes** — adding support for a new tool requires creating one new file in `src/aegis/adapters/` and registering it.
 - **Fail-safe** — if an adapter cannot parse or classify an event, it must return `None` from `detect_prompt`. The blocking heuristic (Layer 3 in the supervisor) then catches it.
-- **PTY fidelity** — every adapter must preserve the full terminal experience: colour, readline, cursor control, Ctrl-C handling. A user running `aegis run <tool>` should see no difference from running the tool directly.
+- **PTY fidelity** — every adapter must preserve the full terminal experience: colour, readline, cursor control, Ctrl-C handling. A user running `atlasbridge run <tool>` should see no difference from running the tool directly.
 - **Transparent injection** — when the user replies, the adapter's `inject_reply` writes exactly the bytes the tool expects, no more, no less.
 - **Observable** — `snapshot_context` returns a rich dictionary suitable for the status display and for debugging.
 
@@ -90,7 +90,7 @@ class Reply:
 
 class BaseAdapter(ABC):
     """
-    Abstract base for all Aegis tool adapters.
+    Abstract base for all AtlasBridge tool adapters.
 
     An adapter is responsible for:
       1. Spawning the supervised CLI in a PTY and returning a session ID.
@@ -245,8 +245,8 @@ class BaseAdapter(ABC):
         Return a serializable snapshot of the current session context.
 
         Used by:
-          - `aegis status` (displayed in the Rich status table)
-          - `aegis doctor` (health diagnostics)
+          - `atlasbridge status` (displayed in the Rich status table)
+          - `atlasbridge doctor` (health diagnostics)
           - The supervisor's debug logging
 
         The returned dictionary must include at minimum:
@@ -289,7 +289,7 @@ class BaseAdapter(ABC):
 | Field | Type | Description |
 |---|---|---|
 | `prompt_id` | `str` | UUID v4. Generated fresh for every detected prompt. Used as the primary key in the SQLite `prompts` table and embedded in every Telegram callback. |
-| `session_id` | `str` | UUID v4. Identifies the `aegis run` invocation. Matches the `sessions` table primary key. |
+| `session_id` | `str` | UUID v4. Identifies the `atlasbridge run` invocation. Matches the `sessions` table primary key. |
 | `prompt_type` | `PromptType` | Classified type of the prompt. One of `TYPE_YES_NO`, `TYPE_CONFIRM_ENTER`, `TYPE_MULTIPLE_CHOICE`, `TYPE_FREE_TEXT`. |
 | `confidence` | `Confidence` | Classification confidence band: `HIGH` (>= 0.85), `MED` (0.65–0.84), `LOW` (0.60–0.64). Drives the safe-default safety margin. |
 | `excerpt` | `str` | Truncated, ANSI-stripped display text. Hard limit of 200 characters. Trailing content is replaced with `…`. This is what the user sees in the channel message. Must not contain passwords, API keys, or other secrets; the adapter is responsible for light redaction of common secret patterns. |
@@ -381,7 +381,7 @@ The supervisor's `INJECT_BYTES` lookup table (in `aegis/core/constants.py`) pre-
 
 ### Purpose
 
-When Aegis operates under high load, reconnects after a network blip, or has the same PTY output read twice due to a buffer boundary, the same prompt text might trigger `detect_prompt` multiple times. The idempotency key prevents the supervisor from creating multiple `PromptEvent` records for the same physical prompt occurrence.
+When AtlasBridge operates under high load, reconnects after a network blip, or has the same PTY output read twice due to a buffer boundary, the same prompt text might trigger `detect_prompt` multiple times. The idempotency key prevents the supervisor from creating multiple `PromptEvent` records for the same physical prompt occurrence.
 
 ### Generation
 
@@ -721,7 +721,7 @@ To capture a new scenario from a live session, set `AEGIS_CAPTURE_PROMPTS=1` bef
 AEGIS_CAPTURE_PROMPTS=1 aegis run claude
 ```
 
-Aegis writes a `.json` scenario file to `~/.aegis/captured_scenarios/` for each detected prompt. Copy these files to `tests/prompt_lab/scenarios/` and annotate them with the expected fields.
+AtlasBridge writes a `.json` scenario file to `~/.atlasbridge/captured_scenarios/` for each detected prompt. Copy these files to `tests/prompt_lab/scenarios/` and annotate them with the expected fields.
 
 ### Regression Protection
 

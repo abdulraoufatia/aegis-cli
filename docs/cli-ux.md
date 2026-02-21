@@ -1,4 +1,4 @@
-# Aegis CLI UX Specification
+# AtlasBridge UX Specification
 
 **Version:** 0.2.0
 **Status:** Design
@@ -8,11 +8,11 @@
 
 ## 1. Design Principles
 
-Aegis is a CLI-first tool. Every interaction must feel fast, clear, and recoverable. The following principles govern all command design decisions.
+AtlasBridge is a CLI-first tool. Every interaction must feel fast, clear, and recoverable. The following principles govern all command design decisions.
 
 ### Simple
 
-The default invocation of every command does the right thing without flags. A new user who has just run `aegis setup` should be able to run `aegis start` and `aegis run claude` without reading documentation.
+The default invocation of every command does the right thing without flags. A new user who has just run `atlasbridge setup` should be able to run `atlasbridge start` and `atlasbridge run claude` without reading documentation.
 
 Advanced control (dry runs, custom session names, JSON output) is available through flags, but flags are never required for normal use.
 
@@ -20,15 +20,15 @@ Advanced control (dry runs, custom session names, JSON output) is available thro
 
 `aegis --help` shows every command. `aegis <command> --help` shows every flag for that command. The help text is the spec — if the help text says something works, it works. If a command is experimental or platform-limited, the help text says so.
 
-`aegis doctor` is always the answer when something is wrong. The user should never have to guess what to check. Every error message ends with a suggested next step, usually `Run aegis doctor to diagnose.`
+`atlasbridge doctor` is always the answer when something is wrong. The user should never have to guess what to check. Every error message ends with a suggested next step, usually `Run aegis doctor to diagnose.`
 
 ### Self-healing (`doctor --fix`)
 
-`aegis doctor --fix` attempts to automatically repair common configuration problems: wrong file permissions, missing directories, stale lock files, expired tokens in the environment. It is safe to run at any time. It never makes destructive changes without confirmation.
+`atlasbridge doctor --fix` attempts to automatically repair common configuration problems: wrong file permissions, missing directories, stale lock files, expired tokens in the environment. It is safe to run at any time. It never makes destructive changes without confirmation.
 
 ### No hidden state
 
-Aegis does not have hidden global state beyond the files in `~/.aegis/`. The location of every relevant file is shown by `aegis status` and `aegis doctor`. There are no undocumented environment variables. There are no magic fallback behaviors that only activate under specific conditions.
+AtlasBridge does not have hidden global state beyond the files in `~/.atlasbridge/`. The location of every relevant file is shown by `atlasbridge status` and `atlasbridge doctor`. There are no undocumented environment variables. There are no magic fallback behaviors that only activate under specific conditions.
 
 ### Additional principles
 
@@ -60,9 +60,9 @@ Available on every command:
 
 ---
 
-### `aegis setup`
+### `atlasbridge setup`
 
-**Purpose:** Interactive first-run wizard. Configures Aegis from scratch.
+**Purpose:** Interactive first-run wizard. Configures AtlasBridge from scratch.
 
 **Usage:**
 ```
@@ -78,16 +78,16 @@ aegis setup [OPTIONS]
 | `--channel TYPE` | Channel to configure: `telegram` (default), `slack` |
 | `--non-interactive` | Skip all prompts; require `--token` and `--users` |
 | `--force` | Re-run setup even if already configured |
-| `--config-path PATH` | Custom config directory (default: `~/.aegis/`) |
+| `--config-path PATH` | Custom config directory (default: `~/.atlasbridge/`) |
 | `--json` | Output result as JSON |
 
 **Interactive flow:**
 
 ```
-Welcome to Aegis Setup
+Welcome to AtlasBridge Setup
 
-Aegis is a remote interactive prompt relay for AI developer agents.
-When your AI agent pauses and waits for your input, Aegis forwards
+AtlasBridge is a remote interactive prompt relay for AI developer agents.
+When your AI agent pauses and waits for your input, AtlasBridge forwards
 the prompt to your phone via Telegram and injects your reply.
 
 Let's get you set up. This takes about 2 minutes.
@@ -111,7 +111,7 @@ Enter your Telegram user ID(s) [comma-separated]: _
 Step 3/5: Testing Telegram Connectivity
 ──────────────────────────────────────────
   Connecting to Telegram API...
-  Bot token valid — bot name: @YourAegisBot
+  Bot token valid — bot name: @YourAtlasBridgeBot
   Sending test message to user 123456789...
   Test message delivered
 
@@ -128,12 +128,12 @@ Select [1]: _
 
 Step 5/5: Summary
 ──────────────────
-  Config:   ~/.aegis/config.toml    OK
-  Database: ~/.aegis/aegis.db       OK
-  Telegram: @YourAegisBot           OK
+  Config:   ~/.atlasbridge/config.toml    OK
+  Database: ~/.atlasbridge/atlasbridge.db       OK
+  Telegram: @YourAtlasBridgeBot           OK
   Users:    [123456789]             OK
 
-Aegis is ready. Start it with:
+AtlasBridge is ready. Start it with:
   aegis start
 
 Then wrap your AI tool:
@@ -146,7 +146,7 @@ Setup complete.
 ```bash
 aegis setup \
   --non-interactive \
-  --token "$AEGIS_TELEGRAM_BOT_TOKEN" \
+  --token "$ATLASBRIDGE_TELEGRAM_BOT_TOKEN" \
   --users "123456789"
 ```
 
@@ -155,8 +155,8 @@ aegis setup \
 {
   "status": "success",
   "config_path": "/Users/ara/.aegis/config.toml",
-  "db_path": "/Users/ara/.aegis/aegis.db",
-  "telegram_bot": "@YourAegisBot",
+  "db_path": "/Users/ara/.aegis/atlasbridge.db",
+  "telegram_bot": "@YourAtlasBridgeBot",
   "allowed_users": [123456789]
 }
 ```
@@ -168,9 +168,9 @@ aegis setup \
 
 ---
 
-### `aegis start`
+### `atlasbridge start`
 
-**Purpose:** Start the Aegis background daemon.
+**Purpose:** Start the AtlasBridge background daemon.
 
 **Usage:**
 ```
@@ -188,27 +188,27 @@ aegis start [OPTIONS]
 
 **Output:**
 ```
-Starting Aegis daemon...
+Starting AtlasBridge daemon...
   Config loaded
   Database initialized
-  Telegram bot connected (@YourAegisBot)
+  Telegram bot connected (@YourAtlasBridgeBot)
   Daemon started (PID 12345)
 
-Aegis is running. To stop it:
+AtlasBridge is running. To stop it:
   aegis stop
 ```
 
 **Already running:**
 ```
-Aegis daemon is already running (PID 12345).
+AtlasBridge daemon is already running (PID 12345).
 Use 'aegis stop' to stop it first.
 ```
 
 ---
 
-### `aegis stop`
+### `atlasbridge stop`
 
-**Purpose:** Stop the Aegis daemon.
+**Purpose:** Stop the AtlasBridge daemon.
 
 **Usage:**
 ```
@@ -225,7 +225,7 @@ aegis stop [OPTIONS]
 
 **Output:**
 ```
-Stopping Aegis daemon (PID 12345)...
+Stopping AtlasBridge daemon (PID 12345)...
   Daemon stopped
 ```
 
@@ -235,11 +235,11 @@ Warning: 1 active session will be terminated (claude, PID 9876).
 Continue? [y/N]: _
 ```
 
-**Not running:** Exit 0 (idempotent). Output: `Aegis daemon is not running.`
+**Not running:** Exit 0 (idempotent). Output: `AtlasBridge daemon is not running.`
 
 ---
 
-### `aegis status`
+### `atlasbridge status`
 
 **Purpose:** Show daemon status and session overview.
 
@@ -257,11 +257,11 @@ aegis status [OPTIONS]
 
 **Output:**
 ```
-Aegis Status
+AtlasBridge Status
 ────────────────────────────────────────────
 Daemon:      Running (PID 12345)
 Uptime:      2h 14m
-Telegram:    Connected (@YourAegisBot)
+Telegram:    Connected (@YourAtlasBridgeBot)
 
 Sessions:
   Active:    1   (claude, PID 9876)
@@ -272,7 +272,7 @@ Prompts today:
   Answered:   8
   Pending:    0
 
-Database:    ~/.aegis/aegis.db (2.1 MB)
+Database:    ~/.atlasbridge/atlasbridge.db (2.1 MB)
 Version:     0.2.0
 ```
 
@@ -280,7 +280,7 @@ Version:     0.2.0
 ```json
 {
   "daemon": { "running": true, "pid": 12345, "uptime_seconds": 8040 },
-  "telegram": { "connected": true, "bot_name": "@YourAegisBot" },
+  "telegram": { "connected": true, "bot_name": "@YourAtlasBridgeBot" },
   "sessions": { "active": 1, "today": 3 },
   "prompts": { "forwarded_today": 8, "answered_today": 8, "pending": 0 },
   "version": "0.2.0"
@@ -289,9 +289,9 @@ Version:     0.2.0
 
 ---
 
-### `aegis run <tool> [args...]`
+### `atlasbridge run <tool> [args...]`
 
-**Purpose:** Run an AI CLI tool under Aegis supervision. This is the primary command users invoke on every session.
+**Purpose:** Run an AI CLI tool under AtlasBridge supervision. This is the primary command users invoke on every session.
 
 **Usage:**
 ```
@@ -318,7 +318,7 @@ aegis run claude --dry-run
 ```
 
 **Behavior:**
-- Requires the daemon to be running. If not running, suggests `aegis start`.
+- Requires the daemon to be running. If not running, suggests `atlasbridge start`.
 - Launches the tool in a PTY (full interactive terminal, colors preserved).
 - Forwards all output to the host terminal.
 - On prompt detection, sends the prompt to Telegram and waits for the reply.
@@ -339,7 +339,7 @@ No process started.
 
 **Not-running warning:**
 ```
-Error: Aegis daemon is not running.
+Error: AtlasBridge daemon is not running.
 
 Start it with:
   aegis start
@@ -352,7 +352,7 @@ Exit code: 1
 
 ---
 
-### `aegis sessions`
+### `atlasbridge sessions`
 
 **Purpose:** List active and recent sessions with their IDs, tool names, status, and prompt counts.
 
@@ -384,9 +384,9 @@ To attach logs for a session:
 
 ---
 
-### `aegis logs`
+### `atlasbridge logs`
 
-**Purpose:** View Aegis daemon and session logs.
+**Purpose:** View AtlasBridge daemon and session logs.
 
 **Usage:**
 ```
@@ -421,7 +421,7 @@ aegis logs [OPTIONS]
 
 ---
 
-### `aegis doctor`
+### `atlasbridge doctor`
 
 **Purpose:** Run comprehensive health diagnostics. Always the first thing to run when something is wrong.
 
@@ -440,19 +440,19 @@ aegis doctor [OPTIONS]
 
 **Output:**
 ```
-Aegis Doctor — System Diagnostics
+AtlasBridge Doctor — System Diagnostics
 ════════════════════════════════════════
 
 Environment
 ──────────────────────────────────────
   PASS  Python 3.11.8 (required: 3.11+)
-  PASS  Dependencies installed (aegis-cli 0.2.0)
+  PASS  Dependencies installed (atlasbridge 0.2.0)
   PASS  SQLite 3.45.1 accessible
-  PASS  Config file exists: ~/.aegis/config.toml
+  PASS  Config file exists: ~/.atlasbridge/config.toml
   PASS  Config file valid
   PASS  Telegram token format valid
   PASS  Telegram API reachable
-  PASS  Bot responds: @YourAegisBot
+  PASS  Bot responds: @YourAtlasBridgeBot
   PASS  claude found on PATH: /usr/local/bin/claude
 
 Security
@@ -473,7 +473,7 @@ Summary: 13 PASS, 0 WARN, 0 FAIL
 **With `--fix`:**
 ```
   FAIL  Config file permissions: 0644 (should be 0600)
-        Auto-fixing: chmod 0600 ~/.aegis/config.toml
+        Auto-fixing: chmod 0600 ~/.atlasbridge/config.toml
         Fixed
 ```
 
@@ -485,22 +485,22 @@ Summary: 13 PASS, 0 WARN, 0 FAIL
 
 ---
 
-### `aegis doctor --fix`
+### `atlasbridge doctor --fix`
 
 The `--fix` flag enables automatic repair of the following issues:
 
 | Issue | Auto-fix |
 |---|---|
-| Config file permissions not 0600 | `chmod 0600 ~/.aegis/config.toml` |
-| PID file orphaned (process not running) | Remove stale `~/.aegis/aegis.pid` |
+| Config file permissions not 0600 | `chmod 0600 ~/.atlasbridge/config.toml` |
+| PID file orphaned (process not running) | Remove stale `~/.atlasbridge/aegis.pid` |
 | Database WAL file stuck | `PRAGMA wal_checkpoint(TRUNCATE)` |
-| `~/.aegis/` directory missing | `mkdir -p ~/.aegis` with 0700 |
+| `~/.atlasbridge/` directory missing | `mkdir -p ~/.atlasbridge` with 0700 |
 
 Fixes that would destroy data (e.g., a corrupted database) are never applied automatically. The doctor reports them and tells the user what to do manually.
 
 ---
 
-### `aegis debug bundle`
+### `atlasbridge debug bundle`
 
 **Purpose:** Package logs and configuration into a redacted archive for support.
 
@@ -518,10 +518,10 @@ aegis debug bundle [OPTIONS]
 | `--no-redact` | Include secrets unredacted (use with care) |
 
 **What is included (redacted by default):**
-- `~/.aegis/config.toml` with `bot_token` replaced by `***REDACTED***`
-- Last 500 lines of `~/.aegis/aegis.log`
-- `aegis doctor --json` output
-- `aegis version --json` output
+- `~/.atlasbridge/config.toml` with `bot_token` replaced by `***REDACTED***`
+- Last 500 lines of `~/.atlasbridge/aegis.log`
+- `atlasbridge doctor --json` output
+- `atlasbridge version --json` output
 - Python version and platform info
 - OS version
 
@@ -535,12 +535,12 @@ Creating debug bundle...
 
 Bundle saved to: ./aegis-debug-20260221-191055.zip (12 KB)
 
-Share this file with the Aegis team. It does not contain your bot token or user IDs.
+Share this file with the AtlasBridge team. It does not contain your bot token or user IDs.
 ```
 
 ---
 
-### `aegis channel add telegram|slack`
+### `atlasbridge channel add telegram|slack`
 
 **Purpose:** Add or reconfigure a notification channel.
 
@@ -572,7 +572,7 @@ Adding Slack channel...
 
 Step 1/3: Slack Bot Token
 ──────────────────────────
-Install the Aegis Slack app at your workspace, then enter the bot token:
+Install the AtlasBridge Slack app at your workspace, then enter the bot token:
 Enter Slack bot token: _
 
 Step 2/3: Slack Channel
@@ -613,7 +613,7 @@ Use: aegis run <tool>
 
 ---
 
-### `aegis version`
+### `atlasbridge version`
 
 **Purpose:** Show version information and active feature flags.
 
@@ -651,7 +651,7 @@ Feature flags:
 
 ---
 
-### `aegis lab run <scenario>` / `aegis lab list`
+### `atlasbridge lab run <scenario>` / `atlasbridge lab list`
 
 **Purpose:** Prompt Lab — developer and QA tool for running PTY/detection scenarios. Not intended for end users.
 
@@ -662,9 +662,9 @@ aegis lab run --all          Run all registered scenarios
 aegis lab list               List all registered scenarios
 ```
 
-**`aegis lab list` output:**
+**`atlasbridge lab list` output:**
 ```
-Aegis Prompt Lab — Registered Scenarios
+AtlasBridge Prompt Lab — Registered Scenarios
 
 QA ID    Name                         Platform           Status
 QA-001   PartialLinePromptScenario    macos, linux       registered
@@ -682,7 +682,7 @@ QA-019   EchoLoopScenario             macos, linux       registered
 11 scenarios registered.
 ```
 
-**`aegis lab run --all` output:**
+**`atlasbridge lab run --all` output:**
 ```
 Running all Prompt Lab scenarios...
 
@@ -707,7 +707,7 @@ Running all Prompt Lab scenarios...
 
 ### When to use Rich tables
 
-Use Rich tables for multi-row structured output: `aegis sessions`, `aegis adapter list`, `aegis lab list`. Rich tables are rendered only when stdout is a TTY. When stdout is piped or redirected, fall back to plain tab-separated values.
+Use Rich tables for multi-row structured output: `atlasbridge sessions`, `aegis adapter list`, `atlasbridge lab list`. Rich tables are rendered only when stdout is a TTY. When stdout is piped or redirected, fall back to plain tab-separated values.
 
 ### When to use plain text
 
@@ -718,7 +718,7 @@ Use plain text for single-value output (`aegis config get <key>`), status lines 
 All commands that produce structured output support `--json`. JSON output:
 - Always goes to stdout.
 - Always includes a `"status"` field: `"success"` or `"error"`.
-- Is valid JSON (not JSON Lines), except `aegis logs --json` which uses JSON Lines (one object per line).
+- Is valid JSON (not JSON Lines), except `atlasbridge logs --json` which uses JSON Lines (one object per line).
 - Is produced even when stdout is not a TTY.
 
 JSON is the recommended format for use in scripts, CI pipelines, and any context where the output will be parsed.
@@ -775,12 +775,12 @@ Unacceptable:
 
 | Situation | Message |
 |---|---|
-| Setup not complete | `Run 'aegis setup' to configure Aegis first.` |
+| Setup not complete | `Run 'aegis setup' to configure AtlasBridge first.` |
 | Daemon not running | `Run 'aegis start' to start the daemon.` |
 | Config invalid | `Run 'aegis doctor' to diagnose configuration issues.` |
 | Permission denied | `Run 'aegis doctor --fix' to auto-repair file permissions.` |
 | Network failure | `Check your internet connection. Run 'aegis doctor' for details.` |
-| Unknown error | `Run 'aegis debug bundle' and share the output with the Aegis team.` |
+| Unknown error | `Run 'aegis debug bundle' and share the output with the AtlasBridge team.` |
 
 ---
 
@@ -830,7 +830,7 @@ Exit code: 130
 
 ## 6. Shell Completion
 
-Aegis generates shell completion scripts for bash, zsh, and fish via Click's built-in completion system.
+AtlasBridge generates shell completion scripts for bash, zsh, and fish via Click's built-in completion system.
 
 ### Bash
 
@@ -841,8 +841,8 @@ eval "$(_AEGIS_COMPLETE=bash_source aegis)"
 
 Or generate and source a file:
 ```bash
-_AEGIS_COMPLETE=bash_source aegis > ~/.aegis-complete.bash
-echo "source ~/.aegis-complete.bash" >> ~/.bashrc
+_AEGIS_COMPLETE=bash_source aegis > ~/.atlasbridge-complete.bash
+echo "source ~/.atlasbridge-complete.bash" >> ~/.bashrc
 ```
 
 ### Zsh
@@ -862,23 +862,23 @@ _AEGIS_COMPLETE=fish_source aegis > ~/.config/fish/completions/aegis.fish
 
 - All commands and subcommands
 - All flags and their arguments
-- `aegis run <TAB>`: completes tool names found on PATH
-- `aegis lab run <TAB>`: completes registered QA scenario IDs
-- `aegis logs --session <TAB>`: completes active session IDs
-- `aegis channel add <TAB>`: completes `telegram slack`
+- `atlasbridge run <TAB>`: completes tool names found on PATH
+- `atlasbridge lab run <TAB>`: completes registered QA scenario IDs
+- `atlasbridge logs --session <TAB>`: completes active session IDs
+- `atlasbridge channel add <TAB>`: completes `telegram slack`
 
 ---
 
 ## 7. Telegram Bot Commands
 
-The Aegis Telegram bot supports the following slash commands. These commands are sent directly to the bot in Telegram and control the active session.
+The AtlasBridge Telegram bot supports the following slash commands. These commands are sent directly to the bot in Telegram and control the active session.
 
 ### `/start`
 
 Sent automatically when a user opens a conversation with the bot. Responds with a welcome message and the current connection status.
 
 ```
-Aegis bot connected.
+AtlasBridge bot connected.
 Daemon status: Running
 Active sessions: 1 (claude, started 19:10)
 
@@ -914,7 +914,7 @@ Now routing replies to: claude (s-a1b2c3, auth-feature)
 Shows daemon and session status inline in Telegram.
 
 ```
-Aegis Status
+AtlasBridge Status
 
   Daemon: Running (PID 12345)
   Telegram: Connected
@@ -940,7 +940,7 @@ The agent will receive a timeout response.
 Shows all available bot commands with brief descriptions.
 
 ```
-Aegis Bot Commands
+AtlasBridge Bot Commands
 
   /start    Show connection status
   /sessions List active sessions

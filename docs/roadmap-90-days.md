@@ -1,4 +1,4 @@
-# Aegis 90-Day Roadmap
+# AtlasBridge 90-Day Roadmap
 
 **Version:** 0.2.0
 **Status:** Planning
@@ -9,7 +9,7 @@
 
 ## Summary
 
-This document is the canonical 90-day execution plan for Aegis. It covers six sequential phases, from macOS MVP hardening through Linux parity, adapter abstraction, Slack integration, and experimental Windows support. Each phase has a concrete definition of done, measurable success metrics, and a dependency graph linking it to later phases.
+This document is the canonical 90-day execution plan for AtlasBridge. It covers six sequential phases, from macOS MVP hardening through Linux parity, adapter abstraction, Slack integration, and experimental Windows support. Each phase has a concrete definition of done, measurable success metrics, and a dependency graph linking it to later phases.
 
 The target audience is the engineering team and any external contributors reviewing the project's near-term priorities.
 
@@ -24,7 +24,7 @@ The target audience is the engineering team and any external contributors review
 | 3 | 7–8 | Adapter abstraction + OpenAI CLI | `BaseAdapter`, OpenAI adapter, `aegis adapter list` | Two working adapters, interface stable |
 | 4 | 9–10 | Slack channel + channel UX parity | `SlackChannel`, slash commands, Slack QA variants | Telegram + Slack parity on all prompt types |
 | 5 | 11–12 | Windows ConPTY experimental | ConPTY adapter, QA-020, Windows CI | QA-020 passing |
-| 6 | Ongoing | UX polish + observability | `aegis sessions`, `aegis logs --tail`, Web UI stub | Dashboard operational |
+| 6 | Ongoing | UX polish + observability | `atlasbridge sessions`, `atlasbridge logs --tail`, Web UI stub | Dashboard operational |
 
 ---
 
@@ -62,7 +62,7 @@ Phase 6 has two entry points: it can begin incrementally alongside Phase 3 once 
 
 ### Objective
 
-Deliver a complete, reliable, tested macOS implementation of the Aegis prompt relay. Every component — PTY supervisor, tri-signal detector, Telegram bot, SQLite store, audit log, and Claude Code adapter — must be individually tested and collectively proven via the 19 Prompt Lab scenarios. The release must be shippable to early users.
+Deliver a complete, reliable, tested macOS implementation of the AtlasBridge prompt relay. Every component — PTY supervisor, tri-signal detector, Telegram bot, SQLite store, audit log, and Claude Code adapter — must be individually tested and collectively proven via the 19 Prompt Lab scenarios. The release must be shippable to early users.
 
 ### Deliverables
 
@@ -79,13 +79,13 @@ The `PTYSupervisor` class runs the full asyncio event loop with four concurrent 
 The adapter wires the PTY supervisor to the Claude Code tool invocation pattern. It handles all four prompt types with correct injection bytes (`y\r`, `n\r`, `\r`, `N\r`, free text + `\r`). It correctly suppresses detection for `post_inject_suppress_ms` after each injection. Safe defaults are enforced — `YES_NO` safe default cannot be `y`.
 
 **Prompt Lab Simulator (QA-001 through QA-009)**
-The `aegis lab` CLI command and the `tests/prompt_lab/` infrastructure are built in this phase. Scenarios QA-001 through QA-009 cover all core detection and injection failure modes. Each scenario is deterministic, runs without network access or a real Telegram account, and produces a JSON pass/fail report. The Telegram stub supports `auto_reply`, `deliver_callback`, `simulate_outage`, and `get_messages`.
+The `atlasbridge lab` CLI command and the `tests/prompt_lab/` infrastructure are built in this phase. Scenarios QA-001 through QA-009 cover all core detection and injection failure modes. Each scenario is deterministic, runs without network access or a real Telegram account, and produces a JSON pass/fail report. The Telegram stub supports `auto_reply`, `deliver_callback`, `simulate_outage`, and `get_messages`.
 
 **Test Coverage**
 Unit tests cover all `PromptDetector` patterns (minimum 27 test cases), `decide_prompt()` guard, audit chain, Telegram templates, and config validation. Integration tests cover the CLI commands and the end-to-end PTY flow. Coverage target: 85% line coverage measured by `pytest-cov`, enforced in CI.
 
 **CI Foundation**
-GitHub Actions workflow runs on `macos-latest` with Python 3.11 and 3.12. The pipeline: `ruff check`, `ruff format --check`, `mypy`, `pytest --cov`, `aegis lab run --all`. A passing CI job on `main` is a hard prerequisite for tagging `v0.2.0`.
+GitHub Actions workflow runs on `macos-latest` with Python 3.11 and 3.12. The pipeline: `ruff check`, `ruff format --check`, `mypy`, `pytest --cov`, `atlasbridge lab run --all`. A passing CI job on `main` is a hard prerequisite for tagging `v0.2.0`.
 
 ### Success Metric
 
@@ -93,12 +93,12 @@ GitHub Actions workflow runs on `macos-latest` with Python 3.11 and 3.12. The pi
 
 ### Definition of Done
 
-- [ ] `aegis run claude` works end-to-end on macOS with a real Claude Code binary
+- [ ] `atlasbridge run claude` works end-to-end on macOS with a real Claude Code binary
 - [ ] All four prompt types detected and relayed correctly
-- [ ] `aegis lab run --all` reports 19/19 PASS on macOS
+- [ ] `atlasbridge lab run --all` reports 19/19 PASS on macOS
 - [ ] CI is green (lint + types + tests + lab scenarios) on `macos-latest`
 - [ ] `pytest --cov` reports >= 85% line coverage
-- [ ] `aegis setup`, `aegis run`, `aegis status`, `aegis doctor` all work without error on a clean macOS machine
+- [ ] `atlasbridge setup`, `atlasbridge run`, `atlasbridge status`, `atlasbridge doctor` all work without error on a clean macOS machine
 - [ ] `CHANGELOG.md` updated for v0.2.0
 - [ ] `v0.2.0` git tag created and pushed
 
@@ -111,7 +111,7 @@ GitHub Actions workflow runs on `macos-latest` with Python 3.11 and 3.12. The pi
 
 ### Objective
 
-Extend Aegis to Linux without regression on macOS. The `ptyprocess` library used in Phase 1 is POSIX-portable, but there are platform-specific differences in PTY behaviour, terminal settings, and process management (launchd on macOS vs. systemd on Linux). This phase proves Aegis works identically on both platforms by running the full 19-scenario QA suite on both.
+Extend AtlasBridge to Linux without regression on macOS. The `ptyprocess` library used in Phase 1 is POSIX-portable, but there are platform-specific differences in PTY behaviour, terminal settings, and process management (launchd on macOS vs. systemd on Linux). This phase proves AtlasBridge works identically on both platforms by running the full 19-scenario QA suite on both.
 
 ### Deliverables
 
@@ -132,10 +132,10 @@ All 4 combinations must be green. The Prompt Lab scenarios run as part of the CI
 All 19 Prompt Lab scenarios must pass on `ubuntu-latest`. Any Linux-specific behaviour differences discovered during this phase are either fixed (if they represent bugs) or documented as known platform variations and tested explicitly.
 
 **Regression Suite**
-A regression test suite is formalised: the 19 Prompt Lab scenarios are tagged as `regression` markers and always included in the default `pytest` run (not just in `aegis lab run`). This ensures that future changes cannot break any scenario without CI catching it immediately.
+A regression test suite is formalised: the 19 Prompt Lab scenarios are tagged as `regression` markers and always included in the default `pytest` run (not just in `atlasbridge lab run`). This ensures that future changes cannot break any scenario without CI catching it immediately.
 
 **Systemd Service Unit**
-A sample `aegis.service` systemd unit file is added to `packaging/linux/` for users who want to run the Aegis daemon as a persistent service on Linux. The unit is not automatically installed — it is documentation and a starting point.
+A sample `atlasbridge.service` systemd unit file is added to `packaging/linux/` for users who want to run the AtlasBridge daemon as a persistent service on Linux. The unit is not automatically installed — it is documentation and a starting point.
 
 ### Success Metric
 
@@ -143,11 +143,11 @@ CI is green on all 4 combinations in the matrix (`ubuntu-latest` + `macos-latest
 
 ### Definition of Done
 
-- [ ] `aegis run claude` works end-to-end on Ubuntu 22.04 LTS
-- [ ] `aegis lab run --all` reports 19/19 PASS on `ubuntu-latest`
+- [ ] `atlasbridge run claude` works end-to-end on Ubuntu 22.04 LTS
+- [ ] `atlasbridge lab run --all` reports 19/19 PASS on `ubuntu-latest`
 - [ ] CI matrix is 4/4 green (2 OS × 2 Python versions)
 - [ ] No regressions on macOS from Phase 1
-- [ ] `packaging/linux/aegis.service` present
+- [ ] `packaging/linux/atlasbridge.service` present
 - [ ] `CHANGELOG.md` updated for v0.3.0
 - [ ] `v0.3.0` git tag created
 
@@ -191,7 +191,7 @@ openai-cli   openai      missing     —
 ```
 
 **Config Routing**
-`aegis run` reads the `adapter` field from config (or auto-detects from the tool name). This allows users to override the adapter selection when the tool name is ambiguous.
+`atlasbridge run` reads the `adapter` field from config (or auto-detects from the tool name). This allows users to override the adapter selection when the tool name is ambiguous.
 
 ### Success Metric
 
@@ -231,7 +231,7 @@ Slack-specific considerations:
 The Slack bot registers slash commands `/aegis-approve`, `/aegis-deny`, and `/aegis-status`. These work as an alternative to button taps — useful when the notification arrives in a channel where buttons are not rendered (e.g., email digests).
 
 **Channel Routing Configuration**
-Users configure which channel to use in `~/.aegis/config.toml`:
+Users configure which channel to use in `~/.atlasbridge/config.toml`:
 ```toml
 [channel]
 type = "telegram"   # or "slack"
@@ -269,7 +269,7 @@ Telegram and Slack achieve full parity on all prompt types. The Slack variants o
 - [ ] QA-010 through QA-014 pass with Slack stub
 - [ ] `/aegis-approve` and `/aegis-deny` slash commands functional
 - [ ] Channel selection configurable in `config.toml`
-- [ ] `aegis setup` guides user through Slack configuration when `--channel slack` is passed
+- [ ] `atlasbridge setup` guides user through Slack configuration when `--channel slack` is passed
 - [ ] `CHANGELOG.md` updated for v0.4.0
 - [ ] `v0.4.0` git tag created
 
@@ -293,8 +293,8 @@ Deliver an experimental Windows ConPTY adapter behind a feature flag. Windows us
 - Unicode output is decoded with `errors='replace'` to handle Windows-1252 fallback scenarios.
 - SIGINT equivalent on Windows is `CTRL_C_EVENT` sent via `GenerateConsoleCtrlEvent`.
 
-**`--experimental` Flag on `aegis version`**
-`aegis version --experimental` lists active experimental features:
+**`--experimental` Flag on `atlasbridge version`**
+`atlasbridge version --experimental` lists active experimental features:
 ```
 $ aegis version --experimental
 aegis 0.5.0
@@ -317,13 +317,13 @@ A guide is added to `docs/setup-flow.md` for WSL2 users — the recommended path
 
 ### Success Metric
 
-QA-020 passes. `aegis run claude` works on a bare Windows 11 machine with the `--experimental` flag. The Windows CI runner produces a result (pass or fail) on every pull request.
+QA-020 passes. `atlasbridge run claude` works on a bare Windows 11 machine with the `--experimental` flag. The Windows CI runner produces a result (pass or fail) on every pull request.
 
 ### Definition of Done
 
 - [ ] `ConPTYAdapter` in `src/aegis/adapters/conpty.py`
 - [ ] QA-020 passes with ConPTY adapter active
-- [ ] `aegis version --experimental` reports `windows_conpty: enabled`
+- [ ] `atlasbridge version --experimental` reports `windows_conpty: enabled`
 - [ ] Windows CI runner added (best-effort)
 - [ ] WSL2 guide in `docs/setup-flow.md`
 - [ ] `CHANGELOG.md` updated for v0.5.0
@@ -338,11 +338,11 @@ QA-020 passes. `aegis run claude` works on a bare Windows 11 machine with the `-
 
 ### Objective
 
-Make Aegis easier to observe, debug, and operate at scale. The core relay correctness is proven by phases 1–5; Phase 6 is about making it transparent — users and operators can see what is happening in real time, diagnose issues without reading raw logs, and access prompt history without writing SQL.
+Make AtlasBridge easier to observe, debug, and operate at scale. The core relay correctness is proven by phases 1–5; Phase 6 is about making it transparent — users and operators can see what is happening in real time, diagnose issues without reading raw logs, and access prompt history without writing SQL.
 
 ### Deliverables
 
-**`aegis sessions` Command**
+**`atlasbridge sessions` Command**
 A new CLI command lists all sessions with their status, duration, prompt counts, and outcome:
 
 ```
@@ -355,25 +355,25 @@ sess-ghi    claude   16:00:00  5m        1        crashed
 
 With `--json` and `--follow` flags.
 
-**`aegis logs --tail` Improvement**
-`aegis logs --tail` streams structured JSON events from the audit log in real time. The output is colourised by event type when writing to a TTY, and plain JSON Lines when piped. Filtering by session ID (`--session <id>`) and event type (`--event prompt_detected`) is supported.
+**`atlasbridge logs --tail` Improvement**
+`atlasbridge logs --tail` streams structured JSON events from the audit log in real time. The output is colourised by event type when writing to a TTY, and plain JSON Lines when piped. Filtering by session ID (`--session <id>`) and event type (`--event prompt_detected`) is supported.
 
-**`aegis debug bundle`**
-`aegis debug bundle` creates a compressed archive at `~/.aegis/debug-<timestamp>.tar.gz` containing:
+**`atlasbridge debug bundle`**
+`atlasbridge debug bundle` creates a compressed archive at `~/.atlasbridge/debug-<timestamp>.tar.gz` containing:
 - `config.toml` (with secrets redacted)
 - Last 500 lines of `audit.log`
-- `aegis doctor --json` output
-- `aegis version --json` output
-- `aegis sessions --json` output (last 10 sessions)
+- `atlasbridge doctor --json` output
+- `atlasbridge version --json` output
+- `atlasbridge sessions --json` output (last 10 sessions)
 - Current DB schema version
 
 The bundle can be attached to GitHub issues without exposing credentials.
 
-**Prompt Lab Integrated into `aegis doctor --fix`**
-`aegis doctor --fix` gains a `--lab` flag that runs all Prompt Lab scenarios as part of the diagnostic. Scenarios that fail are reported as `FAIL` items in the doctor output with a suggestion to run `aegis lab run <scenario> --verbose` for details.
+**Prompt Lab Integrated into `atlasbridge doctor --fix`**
+`atlasbridge doctor --fix` gains a `--lab` flag that runs all Prompt Lab scenarios as part of the diagnostic. Scenarios that fail are reported as `FAIL` items in the doctor output with a suggestion to run `atlasbridge lab run <scenario> --verbose` for details.
 
 **Web UI Stub**
-A minimal read-only web dashboard is served by the Aegis daemon at `http://localhost:39001/` (opt-in, disabled by default). The initial version shows:
+A minimal read-only web dashboard is served by the AtlasBridge daemon at `http://localhost:39001/` (opt-in, disabled by default). The initial version shows:
 - Session list with live status
 - Active prompt queue
 - Audit log tail (last 50 events)
@@ -382,7 +382,7 @@ A minimal read-only web dashboard is served by the Aegis daemon at `http://local
 The web UI is a stub — it renders correctly but does not yet support approving or denying prompts through the browser. Full interactive support is a post-v0.x milestone.
 
 **Dashboard for Prompt History**
-`aegis sessions <id>` shows a per-session prompt history table:
+`atlasbridge sessions <id>` shows a per-session prompt history table:
 
 ```
 Prompt History for sess-abc (claude, 1h 22m)
@@ -395,12 +395,12 @@ Prompt History for sess-abc (claude, 1h 22m)
 
 ### Definition of Done (Phase 6, per deliverable)
 
-- [ ] `aegis sessions` command functional with `--json` and `--follow`
-- [ ] `aegis logs --tail` streams real-time structured events with filtering
-- [ ] `aegis debug bundle` creates a complete, secrets-redacted archive
-- [ ] `aegis doctor --fix --lab` runs Prompt Lab scenarios as diagnostic checks
+- [ ] `atlasbridge sessions` command functional with `--json` and `--follow`
+- [ ] `atlasbridge logs --tail` streams real-time structured events with filtering
+- [ ] `atlasbridge debug bundle` creates a complete, secrets-redacted archive
+- [ ] `atlasbridge doctor --fix --lab` runs Prompt Lab scenarios as diagnostic checks
 - [ ] Web UI stub served at `localhost:39001` (opt-in)
-- [ ] `aegis sessions <id>` shows per-session prompt history
+- [ ] `atlasbridge sessions <id>` shows per-session prompt history
 
 ---
 
@@ -506,6 +506,6 @@ A CI job is considered "green" (passing) when all of the following are true:
 2. `ruff format --check .` — zero formatting violations
 3. `mypy aegis/` — zero type errors
 4. `pytest tests/ --cov=aegis --cov-report=term-missing` — zero test failures, coverage >= 85%
-5. `aegis lab run --all --json` — all scenarios for the current release gate are `"status": "pass"`
+5. `atlasbridge lab run --all --json` — all scenarios for the current release gate are `"status": "pass"`
 
 A CI job is "green with best-effort" (for Phase 5 Windows runner) when items 1–5 pass on macOS and Linux, and the Windows runner produces a result (even a failure) without timing out.

@@ -9,8 +9,8 @@ from tests.prompt_lab.simulator import (
     ScenarioResults,
     TelegramStub,
 )
-from aegis.channels.slack.channel import SlackChannel
-from aegis.core.prompt.models import PromptType
+from atlasbridge.channels.slack.channel import SlackChannel
+from atlasbridge.core.prompt.models import PromptType
 
 
 @ScenarioRegistry.register

@@ -3,12 +3,12 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aegis-cli"
+name = "atlasbridge"
 version = "0.4.0"
 description = "Universal human-in-the-loop control plane for AI developer agents — forward prompts to your phone, reply from anywhere"
 readme = "README.md"
 license = { file = "LICENSE" }
-authors = [{ name = "Aegis Contributors" }]
+authors = [{ name = "AtlasBridge Contributors" }]
 keywords = ["ai", "cli", "telegram", "relay", "interactive", "claude", "pty", "remote"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -59,7 +59,7 @@ dev = [
     "pytest-asyncio>=0.23",
     "pytest-cov>=5.0",
     "pytest-mock>=3.14",
-    "respx>=0.21",           # HTTP mocking for httpx
+    "respx>=0.21",
     # Linting and formatting
     "ruff>=0.4",
     # Type checking
@@ -73,21 +73,20 @@ dev = [
 ]
 
 [project.scripts]
-aegis = "aegis.cli.main:cli"
+atlasbridge = "atlasbridge.cli.main:cli"
 
 [project.urls]
-Homepage = "https://github.com/abdulraoufatia/aegis-cli"
-Repository = "https://github.com/abdulraoufatia/aegis-cli"
-Issues = "https://github.com/abdulraoufatia/aegis-cli/issues"
-Changelog = "https://github.com/abdulraoufatia/aegis-cli/blob/main/CHANGELOG.md"
-Security = "https://github.com/abdulraoufatia/aegis-cli/blob/main/SECURITY.md"
+Homepage = "https://github.com/abdulraoufatia/atlasbridge"
+Repository = "https://github.com/abdulraoufatia/atlasbridge"
+Issues = "https://github.com/abdulraoufatia/atlasbridge/issues"
+Changelog = "https://github.com/abdulraoufatia/atlasbridge/blob/main/CHANGELOG.md"
+Security = "https://github.com/abdulraoufatia/atlasbridge/blob/main/SECURITY.md"
 
 # ---------------------------------------------------------------------------
 # Tool configuration
 # ---------------------------------------------------------------------------
 
 [tool.setuptools.packages.find]
-# src/aegis/ is the installed distribution for v0.2.0+
 where = ["src"]
 
 [tool.ruff]
@@ -122,21 +121,21 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "ANN", "S105", "S106", "S108"]
 "tests/prompt_lab/**/*.py" = ["S101", "ANN", "F401", "E501", "UP", "I", "B"]
-"src/aegis/cli/*.py" = ["ANN", "E501"]  # CLI glue — annotations deferred; Rich strings can be long
-"src/aegis/core/daemon/*.py" = ["ANN"] # daemon orchestration
-"src/aegis/os/**/*.py" = ["ANN"]       # PTY platform code
-"src/aegis/adapters/*.py" = ["ANN", "E501"]  # adapter glue — regex patterns can exceed 100 chars
-"src/aegis/channels/**/*.py" = ["ANN"] # channel implementations
+"src/atlasbridge/cli/*.py" = ["ANN", "E501"]
+"src/atlasbridge/core/daemon/*.py" = ["ANN"]
+"src/atlasbridge/os/**/*.py" = ["ANN"]
+"src/atlasbridge/adapters/*.py" = ["ANN", "E501"]
+"src/atlasbridge/channels/**/*.py" = ["ANN"]
 
 [tool.mypy]
 python_version = "3.11"
 mypy_path = ["src"]
 explicit_package_bases = true
 strict = true
-warn_return_any = false        # JSON responses are typed as Any throughout; too noisy
+warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = true
-disallow_any_generics = false  # Required for Dict[str, Any] patterns in JSON handling
+disallow_any_generics = false
 no_implicit_optional = true
 
 [[tool.mypy.overrides]]
@@ -144,17 +143,16 @@ module = ["ptyprocess.*", "detect_secrets.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-# New src/aegis package — strict mode applied incrementally
 module = [
-    "aegis.os.*",
-    "aegis.adapters.*",
-    "aegis.core.daemon.*",
-    "aegis.core.routing.*",
-    "aegis.core.session.*",
-    "aegis.core.store.*",
-    "aegis.core.audit.*",
-    "aegis.channels.*",
-    "aegis.cli.*",
+    "atlasbridge.os.*",
+    "atlasbridge.adapters.*",
+    "atlasbridge.core.daemon.*",
+    "atlasbridge.core.routing.*",
+    "atlasbridge.core.session.*",
+    "atlasbridge.core.store.*",
+    "atlasbridge.core.audit.*",
+    "atlasbridge.channels.*",
+    "atlasbridge.cli.*",
 ]
 ignore_errors = true
 
@@ -172,14 +170,14 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["aegis"]
+source = ["atlasbridge"]
 omit = [
     "tests/*",
-    "*/aegis/cli/main.py",
-    "*/aegis/os/*",
-    "*/aegis/core/daemon/*",
-    "*/aegis/channels/*",
-    "*/aegis/cli/*",
+    "*/atlasbridge/cli/main.py",
+    "*/atlasbridge/os/*",
+    "*/atlasbridge/core/daemon/*",
+    "*/atlasbridge/channels/*",
+    "*/atlasbridge/cli/*",
 ]
 
 [tool.coverage.report]
@@ -189,14 +187,14 @@ show_missing = true
 [tool.bandit]
 exclude_dirs = ["tests"]
 skips = [
-    "B101",  # assert_used — ok in non-production paths
-    "B110",  # try_except_pass — intentional in PTY/signal cleanup handlers
-    "B404",  # subprocess import — required for test runner and git operations
-    "B602",  # shell=True — intentional; test_command is operator-supplied, not user input
-    "B603",  # subprocess without shell — intentional for git/process control
-    "B606",  # start without shell — intentional for os.execvp in logs cmd
-    "B607",  # partial executable path — tail/git resolved from PATH
-    "B608",  # SQL injection — false positive; all queries use parameterised bindings
+    "B101",
+    "B110",
+    "B404",
+    "B602",
+    "B603",
+    "B606",
+    "B607",
+    "B608",
 ]
 
 [tool.bandit.assert_used]

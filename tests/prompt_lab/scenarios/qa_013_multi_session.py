@@ -16,7 +16,7 @@ from tests.prompt_lab.simulator import (
     ScenarioResults,
     TelegramStub,
 )
-from aegis.core.store.database import Database
+from atlasbridge.core.store.database import Database
 
 
 @ScenarioRegistry.register

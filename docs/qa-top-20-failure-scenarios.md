@@ -1,4 +1,4 @@
-# Aegis QA: Top 20 Failure Scenarios
+# AtlasBridge QA: Top 20 Failure Scenarios
 
 **Version:** 0.2.0
 **Status:** Reference
@@ -8,9 +8,9 @@
 
 ## Purpose
 
-This document defines the 20 most critical failure scenarios for the Aegis prompt relay system. Each scenario describes a real, reproducible failure mode in prompt detection, injection, session management, channel delivery, or process lifecycle. Every scenario includes a deterministic reproduction path via the Prompt Lab simulator, precise pass/fail criteria, and the instrumentation required to prove correctness in CI.
+This document defines the 20 most critical failure scenarios for the AtlasBridge prompt relay system. Each scenario describes a real, reproducible failure mode in prompt detection, injection, session management, channel delivery, or process lifecycle. Every scenario includes a deterministic reproduction path via the Prompt Lab simulator, precise pass/fail criteria, and the instrumentation required to prove correctness in CI.
 
-These scenarios are the canonical basis for Aegis's CI gating matrix. A release cannot ship unless all scenarios gated to that version are green.
+These scenarios are the canonical basis for AtlasBridge's CI gating matrix. A release cannot ship unless all scenarios gated to that version are green.
 
 ---
 
@@ -18,10 +18,10 @@ These scenarios are the canonical basis for Aegis's CI gating matrix. A release 
 
 Each scenario follows a fixed structure:
 
-- **Title** — what the scenario is called (used as the `aegis lab run` argument)
+- **Title** — what the scenario is called (used as the `atlasbridge lab run` argument)
 - **Risk / Impact** — what breaks in production if this scenario is not handled correctly
-- **Setup** — how to reproduce the failure, using `aegis lab run <scenario>` where possible
-- **Expected Behavior** — the exact pass criterion Aegis must satisfy
+- **Setup** — how to reproduce the failure, using `atlasbridge lab run <scenario>` where possible
+- **Expected Behavior** — the exact pass criterion AtlasBridge must satisfy
 - **Test Type** — `unit`, `integration`, or `e2e`
 - **Required Instrumentation** — the log fields and events that must appear in output for the test to be auto-verified
 - **Test ID** — stable identifier for CI gating references
@@ -173,7 +173,7 @@ Then blocks on `read()`. The prompt text has been erased by the time the stall w
 
 **Expected Behavior**
 
-1. Aegis must retain a snapshot of the most recent non-blank buffer state in the rolling buffer.
+1. AtlasBridge must retain a snapshot of the most recent non-blank buffer state in the rolling buffer.
 2. If the current buffer is blank or below a signal threshold, the system falls back to the LOW-confidence `TYPE_UNKNOWN` flow: it forwards the last 200 chars of the most recent stable content to Telegram and offers SEND_ENTER, Cancel, and Show-Last-Output options.
 3. The Telegram message must include the field `"[low confidence — last captured output shown]"` or equivalent disclaimer.
 4. The prompt is not silently dropped.
@@ -205,7 +205,7 @@ Then blocks on `read()`. The prompt text has been erased by the time the stall w
 
 **Risk / Impact**
 
-The most invisible failure mode: the wrapped process calls `read(0, ...)` and blocks but emits zero output before doing so. No text, no prompt, no indicator. The stall watchdog fires, but there is nothing to show the user. If Aegis is silent in this case, the user's session is frozen with no notification. If Aegis sends a blank message it is confusing. The system must make a sensible choice under zero-information conditions.
+The most invisible failure mode: the wrapped process calls `read(0, ...)` and blocks but emits zero output before doing so. No text, no prompt, no indicator. The stall watchdog fires, but there is nothing to show the user. If AtlasBridge is silent in this case, the user's session is frozen with no notification. If AtlasBridge sends a blank message it is confusing. The system must make a sensible choice under zero-information conditions.
 
 **Setup**
 
@@ -251,7 +251,7 @@ The scenario spawns a child that immediately calls `read(0, 1)` without writing 
 
 **Risk / Impact**
 
-Interactive CLI workflows often ask multiple questions in sequence: confirm a choice, provide a name, confirm deletion. If Aegis handles these sequentially but incorrectly correlates a reply to the wrong prompt — or loses track of the second prompt while the first is being answered — it will inject the wrong text at the wrong time. In the worst case, the user's "yes" to question 1 gets injected as the answer to question 2.
+Interactive CLI workflows often ask multiple questions in sequence: confirm a choice, provide a name, confirm deletion. If AtlasBridge handles these sequentially but incorrectly correlates a reply to the wrong prompt — or loses track of the second prompt while the first is being answered — it will inject the wrong text at the wrong time. In the worst case, the user's "yes" to question 1 gets injected as the answer to question 2.
 
 **Setup**
 
@@ -477,13 +477,13 @@ aegis lab run press-enter
 
 **Risk / Impact**
 
-Free-text prompts (commit messages, file names, API keys) may have implicit or explicit maximum lengths. If Aegis relays a reply that exceeds the length the child process expects, the excess bytes spill into the next read or corrupt the PTY stream. This is especially dangerous for password fields where the overrun could be misinterpreted as a command.
+Free-text prompts (commit messages, file names, API keys) may have implicit or explicit maximum lengths. If AtlasBridge relays a reply that exceeds the length the child process expects, the excess bytes spill into the next read or corrupt the PTY stream. This is especially dangerous for password fields where the overrun could be misinterpreted as a command.
 
 **Setup**
 
 ```python
 def test_free_text_max_length_enforced():
-    config = AegisConfig(free_text_max_length=80)
+    config = AtlasBridgeConfig(free_text_max_length=80)
     reply = "a" * 100
     result = injector.prepare_injection(reply, max_length=80)
     assert len(result.text) <= 80
@@ -629,7 +629,7 @@ The scenario sets `timeout_seconds = 2` for the test session, then:
 
 **Risk / Impact**
 
-Aegis maintains multiple prompt records across sessions. A callback that encodes a `prompt_id` that does not exist, belongs to a different session, or was generated by a different Aegis installation must be rejected without injecting anything. This prevents misdirected approvals from controlling unintended sessions, particularly when a user has multiple sessions open simultaneously.
+AtlasBridge maintains multiple prompt records across sessions. A callback that encodes a `prompt_id` that does not exist, belongs to a different session, or was generated by a different AtlasBridge installation must be rejected without injecting anything. This prevents misdirected approvals from controlling unintended sessions, particularly when a user has multiple sessions open simultaneously.
 
 **Setup**
 
@@ -683,7 +683,7 @@ stub.deliver_callback(callback_data=f"ans:{prompt_in_session_B}:nonce:y")
 
 **Risk / Impact**
 
-A user may legitimately run two `aegis run` invocations simultaneously — for example, one running `claude` in a frontend project and another in a backend project. Both sessions may trigger prompts at the same time. If the Telegram bot routes a reply intended for session A into session B's PTY stdin, the wrong process receives the input. This is a critical correctness failure.
+A user may legitimately run two `atlasbridge run` invocations simultaneously — for example, one running `claude` in a frontend project and another in a backend project. Both sessions may trigger prompts at the same time. If the Telegram bot routes a reply intended for session A into session B's PTY stdin, the wrong process receives the input. This is a critical correctness failure.
 
 **Setup**
 
@@ -726,7 +726,7 @@ The scenario starts two independent PTY supervisors (session A and session B), e
 
 **Risk / Impact**
 
-For `TYPE_FREE_TEXT` prompts, the user replies by sending a text message (not a button tap) in reply to the Telegram bot message. If two sessions both have active `TYPE_FREE_TEXT` prompts simultaneously, and the user sends a plain text message without replying to a specific bot message, Aegis cannot determine which session the reply targets. Injecting into the wrong session would corrupt a free-text input field.
+For `TYPE_FREE_TEXT` prompts, the user replies by sending a text message (not a button tap) in reply to the Telegram bot message. If two sessions both have active `TYPE_FREE_TEXT` prompts simultaneously, and the user sends a plain text message without replying to a specific bot message, AtlasBridge cannot determine which session the reply targets. Injecting into the wrong session would corrupt a free-text input field.
 
 **Setup**
 
@@ -740,8 +740,8 @@ The scenario:
 
 **Expected Behavior**
 
-1. Aegis detects that there are two or more active `TYPE_FREE_TEXT` prompts with no reply context to disambiguate.
-2. Rather than injecting, Aegis sends the user a disambiguation message listing the active sessions with request to reply to the specific bot message for each.
+1. AtlasBridge detects that there are two or more active `TYPE_FREE_TEXT` prompts with no reply context to disambiguate.
+2. Rather than injecting, AtlasBridge sends the user a disambiguation message listing the active sessions with request to reply to the specific bot message for each.
 3. Neither session receives an injection.
 4. If the user then replies to a specific bot message, the injection proceeds correctly for that session only.
 
@@ -771,7 +771,7 @@ The scenario:
 
 **Risk / Impact**
 
-Telegram's API may be temporarily unreachable due to outages or network interruption. If this happens while a prompt is awaiting a reply, the session must not crash, the prompt must not be auto-failed, and Aegis must recover automatically when connectivity returns. Without retry logic and exponential backoff, an outage would require the user to restart the daemon and re-initiate the session.
+Telegram's API may be temporarily unreachable due to outages or network interruption. If this happens while a prompt is awaiting a reply, the session must not crash, the prompt must not be auto-failed, and AtlasBridge must recover automatically when connectivity returns. Without retry logic and exponential backoff, an outage would require the user to restart the daemon and re-initiate the session.
 
 **Setup**
 
@@ -813,14 +813,14 @@ The stub simulates Telegram long-poll failures and `sendMessage` failures separa
 
 ---
 
-### QA-016: Aegis Daemon Restart Mid-Prompt
+### QA-016: AtlasBridge Daemon Restart Mid-Prompt
 
 **Test ID:** QA-016
 **Test Type:** e2e
 
 **Risk / Impact**
 
-The Aegis daemon may be killed and restarted by launchd, systemd, or the user while a session is mid-prompt. The PTY child is still running (it's a separate process), still blocked on `read()`. If the daemon does not reload prompt state from the SQLite store on restart, the pending prompt will be permanently orphaned — the child blocks forever and the user receives no notification.
+The AtlasBridge daemon may be killed and restarted by launchd, systemd, or the user while a session is mid-prompt. The PTY child is still running (it's a separate process), still blocked on `read()`. If the daemon does not reload prompt state from the SQLite store on restart, the pending prompt will be permanently orphaned — the child blocks forever and the user receives no notification.
 
 **Setup**
 
@@ -866,7 +866,7 @@ The scenario:
 
 **Risk / Impact**
 
-The wrapped CLI may crash (SIGSEGV, unhandled exception, OOM) while Aegis is waiting for a Telegram reply to an active prompt. The pending prompt becomes meaningless — there is no process to inject into. If Aegis is not notified of the child's death, it will continue waiting indefinitely and the user's Telegram message will remain showing "awaiting response" with an active button. Tapping that button after the child has died must not crash the Telegram handler.
+The wrapped CLI may crash (SIGSEGV, unhandled exception, OOM) while AtlasBridge is waiting for a Telegram reply to an active prompt. The pending prompt becomes meaningless — there is no process to inject into. If AtlasBridge is not notified of the child's death, it will continue waiting indefinitely and the user's Telegram message will remain showing "awaiting response" with an active button. Tapping that button after the child has died must not crash the Telegram handler.
 
 **Setup**
 
@@ -925,14 +925,14 @@ Memory and CPU profiling is performed during the flood phase:
 
 ```python
 # Measured in prompt_lab/scenarios/output_flood.py
-assert max_rss_delta_mb < 10   # Aegis memory growth <= 10 MB
-assert cpu_time_s < 5          # Aegis CPU time for 100k lines <= 5 s
+assert max_rss_delta_mb < 10   # AtlasBridge memory growth <= 10 MB
+assert cpu_time_s < 5          # AtlasBridge CPU time for 100k lines <= 5 s
 ```
 
 **Expected Behavior**
 
 1. The rolling buffer never grows beyond `max_buffer_bytes` (default: 4096 bytes). Older bytes are evicted as new bytes arrive.
-2. Aegis memory usage (RSS) does not grow unboundedly during the flood — growth is bounded at `O(buffer_size)`, not `O(output_size)`.
+2. AtlasBridge memory usage (RSS) does not grow unboundedly during the flood — growth is bounded at `O(buffer_size)`, not `O(output_size)`.
 3. The `(y/n)` prompt at the end of the flood is correctly detected despite being preceded by a large volume of output.
 4. The prompt is relayed to Telegram and injected correctly after user reply.
 5. No out-of-memory condition, no dropped prompt.
@@ -963,7 +963,7 @@ assert cpu_time_s < 5          # Aegis CPU time for 100k lines <= 5 s
 
 **Risk / Impact**
 
-PTYs echo input back to the master side by default. When Aegis injects a reply (e.g., `y\r`) into the PTY slave's stdin, the PTY layer may echo those bytes back through the output stream. If the `PromptDetector` is still active on the output stream and the echo contains characters that match a prompt pattern, the detector will fire again — creating a second (spurious) prompt detection for the echoed input. This results in a second Telegram message being sent for text the user already answered.
+PTYs echo input back to the master side by default. When AtlasBridge injects a reply (e.g., `y\r`) into the PTY slave's stdin, the PTY layer may echo those bytes back through the output stream. If the `PromptDetector` is still active on the output stream and the echo contains characters that match a prompt pattern, the detector will fire again — creating a second (spurious) prompt detection for the echoed input. This results in a second Telegram message being sent for text the user already answered.
 
 **Setup**
 
@@ -973,13 +973,13 @@ aegis lab run injection-echo-loop
 
 The scenario:
 1. Detects a `(y/n)` prompt.
-2. Simulates user tapping Yes — Aegis injects `y\r`.
+2. Simulates user tapping Yes — AtlasBridge injects `y\r`.
 3. The PTY echoes `y` back to the master output stream.
 4. Measures whether the detector fires again on the echo.
 
 **Expected Behavior**
 
-1. At the moment of injection, Aegis sets an internal `_injecting` flag or clears the rolling output buffer.
+1. At the moment of injection, AtlasBridge sets an internal `_injecting` flag or clears the rolling output buffer.
 2. The detector is suppressed for a brief window (`post_inject_suppress_ms`, default: 500 ms) after injection completes.
 3. The echoed `y` does not trigger a second `prompt_detected` event.
 4. If the suppression window is implemented via buffer clearing, the cleared buffer must not prevent detection of a genuine subsequent prompt that arrives after the suppression window ends.
@@ -1010,7 +1010,7 @@ The scenario:
 
 **Risk / Impact**
 
-Windows uses the ConPTY (Console Pseudo-Terminal) API instead of POSIX PTYs. Output from a ConPTY session uses CRLF (`\r\n`) line endings rather than LF (`\n`). Unicode output (emoji, box-drawing characters, multi-byte sequences) may behave differently in a ConPTY stream than in a POSIX PTY. If Aegis's pattern matching is not CRLF-aware, prompts on Windows will go undetected. If ANSI stripping does not account for ConPTY-specific sequences, pattern matching will produce false negatives on Windows.
+Windows uses the ConPTY (Console Pseudo-Terminal) API instead of POSIX PTYs. Output from a ConPTY session uses CRLF (`\r\n`) line endings rather than LF (`\n`). Unicode output (emoji, box-drawing characters, multi-byte sequences) may behave differently in a ConPTY stream than in a POSIX PTY. If AtlasBridge's pattern matching is not CRLF-aware, prompts on Windows will go undetected. If ANSI stripping does not account for ConPTY-specific sequences, pattern matching will produce false negatives on Windows.
 
 **Setup**
 
@@ -1044,14 +1044,14 @@ def test_crlf_prompt_detection(text):
 2. All prompt types (YES_NO, CONFIRM_ENTER, MULTIPLE_CHOICE, FREE_TEXT) are correctly classified on CRLF input.
 3. Unicode output in the buffer does not cause encoding errors — the buffer handles arbitrary bytes and decodes with `errors='replace'`.
 4. Injection of `y\r\n` (CRLF) is used on Windows instead of `y\r` (CR only) — configurable via `windows_crlf_inject` setting.
-5. The `aegis version --experimental` flag reports `windows_conpty: true` when the ConPTY adapter is active.
+5. The `atlasbridge version --experimental` flag reports `windows_conpty: true` when the ConPTY adapter is active.
 
 **Pass Criteria**
 
 - All 4 CRLF prompt variants classified correctly
 - No `UnicodeDecodeError` on Unicode output
 - `inject_bytes` is CRLF-terminated on Windows
-- `aegis version --experimental` includes `windows_conpty` capability flag
+- `atlasbridge version --experimental` includes `windows_conpty` capability flag
 
 **Required Instrumentation**
 
@@ -1113,12 +1113,12 @@ QA-020 must pass on a Windows CI runner. This gate is labelled "experimental" �
 
 ### Overview
 
-The Prompt Lab is a deterministic simulator that reproduces failure scenarios without requiring a live AI CLI, a real Telegram account, or network access. It ships as `tests/prompt_lab/` and is invocable via the `aegis lab` CLI command.
+The Prompt Lab is a deterministic simulator that reproduces failure scenarios without requiring a live AI CLI, a real Telegram account, or network access. It ships as `tests/prompt_lab/` and is invocable via the `atlasbridge lab` CLI command.
 
 ### Quick Start
 
 ```bash
-# Install Aegis with dev dependencies
+# Install AtlasBridge with dev dependencies
 uv pip install -e ".[dev]"
 
 # List all available scenarios
@@ -1164,7 +1164,7 @@ class PartialLinePromptScenario(LabScenario):
 
 ### Telegram Stub
 
-The Prompt Lab includes a `TelegramStub` that intercepts all `sendMessage` and `getUpdates` calls made by the Aegis bot. The stub records all outbound messages and allows scenarios to inject replies:
+The Prompt Lab includes a `TelegramStub` that intercepts all `sendMessage` and `getUpdates` calls made by the AtlasBridge bot. The stub records all outbound messages and allows scenarios to inject replies:
 
 ```python
 stub = TelegramStub()
@@ -1176,7 +1176,7 @@ stub.simulate_outage(seconds=10)  # simulate Telegram unavailability
 
 ### Assertions
 
-Each scenario defines expected assertions that the `aegis lab run` runner verifies automatically:
+Each scenario defines expected assertions that the `atlasbridge lab run` runner verifies automatically:
 
 ```python
 def assert_results(self, results: ScenarioResults) -> None:
@@ -1188,7 +1188,7 @@ def assert_results(self, results: ScenarioResults) -> None:
 
 ### CI Integration
 
-In CI, `aegis lab run --all --json` produces a machine-readable report used to gate pull requests:
+In CI, `atlasbridge lab run --all --json` produces a machine-readable report used to gate pull requests:
 
 ```yaml
 # .github/workflows/qa.yml
@@ -1203,7 +1203,7 @@ The gate script parses the JSON results and fails the CI job if any mandatory sc
 
 ### Writing New Scenarios
 
-New scenarios are added by creating a file in `tests/prompt_lab/scenarios/` following the naming convention `QA-NNN-<slug>.py`. The file must define a class inheriting from `LabScenario` with `scenario_id`, `name`, `setup()`, and `assert_results()` methods. The scenario is automatically discovered by `aegis lab list`.
+New scenarios are added by creating a file in `tests/prompt_lab/scenarios/` following the naming convention `QA-NNN-<slug>.py`. The file must define a class inheriting from `LabScenario` with `scenario_id`, `name`, `setup()`, and `assert_results()` methods. The scenario is automatically discovered by `atlasbridge lab list`.
 
 ### Debugging Failures
 

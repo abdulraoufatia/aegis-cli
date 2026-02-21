@@ -1,1 +1,0 @@
-"""Aegis Telegram channel package."""

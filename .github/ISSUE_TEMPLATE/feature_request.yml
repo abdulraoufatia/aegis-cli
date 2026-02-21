@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest a new feature or enhancement for Aegis
+description: Suggest a new feature or enhancement for AtlasBridge
 title: "feat: <short description>"
 labels: ["enhancement", "needs-triage"]
 body:
@@ -55,5 +55,5 @@ body:
       options:
         - label: I have searched existing issues and this is not a duplicate
           required: true
-        - label: This feature aligns with Aegis's security-first, local-first principles
+        - label: This feature aligns with AtlasBridge's security-first, local-first principles
           required: true

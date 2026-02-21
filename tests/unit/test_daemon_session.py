@@ -13,9 +13,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from aegis.core.daemon.manager import DaemonManager
-from aegis.core.prompt.models import Confidence, PromptEvent, PromptType
-from aegis.core.session.manager import SessionManager
+from atlasbridge.core.daemon.manager import DaemonManager
+from atlasbridge.core.prompt.models import Confidence, PromptEvent, PromptType
+from atlasbridge.core.session.manager import SessionManager
 
 
 def _minimal_config(tool: str = "claude", command: list[str] | None = None) -> dict:
@@ -23,7 +23,7 @@ def _minimal_config(tool: str = "claude", command: list[str] | None = None) -> d
         "tool": tool,
         "command": command or ["claude", "--no-browser"],
         "channels": {},
-        "data_dir": "/tmp/aegis-test-daemon",
+        "data_dir": "/tmp/atlasbridge-test-daemon",
     }
 
 
@@ -87,7 +87,7 @@ class TestRunAdapterSessionNoop:
         manager._session_manager = None
         manager._router = AsyncMock()
         mock_cls = MagicMock(return_value=_make_mock_adapter())
-        with patch("aegis.adapters.base.AdapterRegistry.get", return_value=mock_cls):
+        with patch("atlasbridge.adapters.base.AdapterRegistry.get", return_value=mock_cls):
             await manager._run_adapter_session()
         assert len(manager._adapters) == 0
 
@@ -111,7 +111,7 @@ class TestRunAdapterSessionLifecycle:
         mock_adapter = _make_mock_adapter()
         adapter_cls = MagicMock(return_value=mock_adapter)
 
-        with patch("aegis.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
+        with patch("atlasbridge.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
             await manager._run_adapter_session()
 
         sessions = list(sm.all_sessions())
@@ -128,7 +128,7 @@ class TestRunAdapterSessionLifecycle:
         mock_adapter = _make_mock_adapter()
         adapter_cls = MagicMock(return_value=mock_adapter)
 
-        with patch("aegis.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
+        with patch("atlasbridge.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
             await manager._run_adapter_session()
 
         assert len(manager._adapters) == 1
@@ -146,7 +146,7 @@ class TestRunAdapterSessionLifecycle:
         mock_adapter = _make_mock_adapter()
         adapter_cls = MagicMock(return_value=mock_adapter)
 
-        with patch("aegis.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
+        with patch("atlasbridge.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
             await manager._run_adapter_session()
 
         assert manager._shutdown_event.is_set()
@@ -163,7 +163,7 @@ class TestRunAdapterSessionLifecycle:
         mock_adapter.snapshot_context.return_value = {"pid": 4242, "alive": False}
         adapter_cls = MagicMock(return_value=mock_adapter)
 
-        with patch("aegis.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
+        with patch("atlasbridge.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
             await manager._run_adapter_session()
 
         sessions = list(sm.all_sessions())
@@ -181,7 +181,7 @@ class TestRunAdapterSessionLifecycle:
         mock_adapter = _make_mock_adapter(chunks=[b"Continue? [y/n] "])
         adapter_cls = MagicMock(return_value=mock_adapter)
 
-        with patch("aegis.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
+        with patch("atlasbridge.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
             await manager._run_adapter_session()
 
         router.route_event.assert_called()
@@ -201,7 +201,7 @@ class TestRunAdapterSessionLifecycle:
         mock_adapter = _make_mock_adapter(chunks=[b"Compiling project...\n"])
         adapter_cls = MagicMock(return_value=mock_adapter)
 
-        with patch("aegis.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
+        with patch("atlasbridge.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
             await manager._run_adapter_session()
 
         router.route_event.assert_not_called()
@@ -216,7 +216,7 @@ class TestRunAdapterSessionLifecycle:
         mock_adapter = _make_mock_adapter()
         adapter_cls = MagicMock(return_value=mock_adapter)
 
-        with patch("aegis.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
+        with patch("atlasbridge.adapters.base.AdapterRegistry.get", return_value=adapter_cls):
             await manager._run_adapter_session()
 
         mock_adapter.terminate_session.assert_called_once()

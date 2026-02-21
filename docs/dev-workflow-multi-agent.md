@@ -1,4 +1,4 @@
-# Aegis Multi-Agent Development Workflow
+# AtlasBridge Multi-Agent Development Workflow
 
 **Version:** 0.2.0
 **Status:** Design
@@ -8,7 +8,7 @@
 
 ## 1. Overview
 
-Aegis is built using a multi-agent engineering organization. Each agent has a defined role, a specific set of owned files, and a defined interface for handing off work to adjacent roles. This document describes how the organization works and how to operate within it effectively.
+AtlasBridge is built using a multi-agent engineering organization. Each agent has a defined role, a specific set of owned files, and a defined interface for handing off work to adjacent roles. This document describes how the organization works and how to operate within it effectively.
 
 The multi-agent model exists because different parts of the codebase have fundamentally different concerns. OS-level PTY mechanics are not the same problem as Telegram bot formatting, and both are different from writing clear CLI help text. By assigning each concern to a specialist role, we prevent cross-cutting changes from creating confusion about ownership and we make it easier to review work at each boundary.
 
@@ -23,7 +23,7 @@ The multi-agent model exists because different parts of the codebase have fundam
 | QA/Reliability Engineer | QA | `tests/`, Prompt Lab, CI gating matrix, coverage enforcement |
 | Docs/DX Engineer | Docs | `docs/`, `README.md`, `CLAUDE.md`, CLI help text, changelog |
 
-No role owns production code outside its primary concern. Cross-cutting changes (e.g., a new field on `AegisConfig`) go through the Architect, who drafts the interface spec before any implementation begins.
+No role owns production code outside its primary concern. Cross-cutting changes (e.g., a new field on `AtlasBridgeConfig`) go through the Architect, who drafts the interface spec before any implementation begins.
 
 ---
 
@@ -108,7 +108,7 @@ Before a PR can be merged to `main`:
 **Responsibilities:**
 - Draft interface specs for new features before any implementation begins.
 - Own major design decisions and document them in `docs/architecture.md` or a new doc.
-- Review PRs that touch interfaces between subsystems (e.g., changes to `PromptDetector` API, new fields on `AegisConfig`, changes to the SQLite schema).
+- Review PRs that touch interfaces between subsystems (e.g., changes to `PromptDetector` API, new fields on `AtlasBridgeConfig`, changes to the SQLite schema).
 - Maintain the roadmap and milestone definitions.
 
 **Does not own:** Any file in `src/` or `tests/`.
@@ -131,7 +131,7 @@ Before a PR can be merged to `main`:
 
 **Responsibilities:**
 - Implement and maintain tool adapters (Claude, OpenAI, Gemini CLI, etc.).
-- Test compatibility of `aegis run` with each supported CLI tool.
+- Test compatibility of `atlasbridge run` with each supported CLI tool.
 - Maintain the `aegis adapter list` output and adapter capability matrix.
 - Coordinate with the Platform Engineer when a new tool requires PTY-layer changes.
 
@@ -227,8 +227,8 @@ The PR is squash-merged. The resulting commit message is the PR title in Convent
 
 ### What CLAUDE.md contains
 
-- What Aegis is (one paragraph, precise)
-- What Aegis is not (explicit anti-scope list)
+- What AtlasBridge is (one paragraph, precise)
+- What AtlasBridge is not (explicit anti-scope list)
 - The minimal correctness invariants
 - The architecture summary with ASCII diagram
 - The key file table

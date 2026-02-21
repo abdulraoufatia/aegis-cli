@@ -10,7 +10,7 @@ Run all tests:
     pytest
 
 Run with coverage:
-    pytest --cov=aegis
+    pytest --cov=atlasbridge
 
 Run unit tests only:
     pytest tests/unit/ -m unit

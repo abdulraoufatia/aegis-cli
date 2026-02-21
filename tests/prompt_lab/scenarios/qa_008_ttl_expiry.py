@@ -11,8 +11,8 @@ from tests.prompt_lab.simulator import (
     ScenarioResults,
     TelegramStub,
 )
-from aegis.core.prompt.models import Confidence, PromptEvent, PromptStatus, PromptType
-from aegis.core.prompt.state import PromptStateMachine
+from atlasbridge.core.prompt.models import Confidence, PromptEvent, PromptStatus, PromptType
+from atlasbridge.core.prompt.state import PromptStateMachine
 
 
 @ScenarioRegistry.register

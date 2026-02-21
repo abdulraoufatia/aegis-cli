@@ -9,7 +9,7 @@ from tests.prompt_lab.simulator import (
     ScenarioResults,
     TelegramStub,
 )
-from aegis.core.prompt.detector import PromptDetector
+from atlasbridge.core.prompt.detector import PromptDetector
 
 
 @ScenarioRegistry.register
