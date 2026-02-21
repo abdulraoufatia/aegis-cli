@@ -52,7 +52,7 @@ class PromptStateMachine:
 
     event: PromptEvent
     status: PromptStatus = PromptStatus.CREATED
-    expires_at: datetime = field(default_factory=datetime.utcnow)
+    expires_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     history: list[tuple[PromptStatus, str]] = field(default_factory=list)
     on_transition: Callable[[PromptStatus, PromptStatus], None] | None = None
 

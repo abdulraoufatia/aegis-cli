@@ -13,9 +13,10 @@ Tests:
 
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
+
+import pytest
 
 from atlasbridge.core.autopilot.engine import HISTORY_FILENAME, AutopilotEngine
 from atlasbridge.core.policy.model import (
@@ -108,7 +109,8 @@ async def call_handle(engine: AutopilotEngine, session_id: str = "sess1") -> obj
 
 
 class TestRateLimits:
-    def test_rate_limit_escalates_after_max(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_rate_limit_escalates_after_max(self, tmp_path: Path) -> None:
         """Rule with max_auto_replies=2: first two calls inject, third escalates."""
         injected: list[str] = []
         routed: list[object] = []
@@ -116,20 +118,18 @@ class TestRateLimits:
         policy = make_policy(rule)
         engine = make_engine(tmp_path, policy, injected=injected, routed=routed)
 
-        async def run() -> None:
-            r1 = await call_handle(engine, "s1")
-            r2 = await call_handle(engine, "s1")
-            r3 = await call_handle(engine, "s1")
-            assert r1.injected is True
-            assert r2.injected is True
-            assert r3.injected is False
-            assert r3.routed_to_human is True
-
-        asyncio.get_event_loop().run_until_complete(run())
+        r1 = await call_handle(engine, "s1")
+        r2 = await call_handle(engine, "s1")
+        r3 = await call_handle(engine, "s1")
+        assert r1.injected is True
+        assert r2.injected is True
+        assert r3.injected is False
+        assert r3.routed_to_human is True
         assert len(injected) == 2
         assert len(routed) == 1
 
-    def test_rate_limit_per_rule(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_rate_limit_per_rule(self, tmp_path: Path) -> None:
         """Two rules each with max_auto_replies=1; counts are tracked per rule_id."""
         injected: list[str] = []
         routed: list[object] = []
@@ -143,76 +143,69 @@ class TestRateLimits:
         policy = make_policy(r1, r2)
         engine = make_engine(tmp_path, policy, injected=injected, routed=routed)
 
-        async def run() -> None:
-            # r1 fires once (yes_no)
-            res1 = await engine.handle_prompt(
-                prompt_event=object(),
-                prompt_id="p1",
-                session_id="s1",
-                prompt_type="yes_no",
-                confidence="high",
-                prompt_text="Continue?",
-            )
-            # r1 second time → rate limited
-            res2 = await engine.handle_prompt(
-                prompt_event=object(),
-                prompt_id="p2",
-                session_id="s1",
-                prompt_type="yes_no",
-                confidence="high",
-                prompt_text="Continue?",
-            )
-            # r2 fires once (confirm_enter)
-            res3 = await engine.handle_prompt(
-                prompt_event=object(),
-                prompt_id="p3",
-                session_id="s1",
-                prompt_type="confirm_enter",
-                confidence="high",
-                prompt_text="Press Enter",
-            )
-            assert res1.injected is True
-            assert res2.routed_to_human is True
-            assert res3.injected is True
+        # r1 fires once (yes_no)
+        res1 = await engine.handle_prompt(
+            prompt_event=object(),
+            prompt_id="p1",
+            session_id="s1",
+            prompt_type="yes_no",
+            confidence="high",
+            prompt_text="Continue?",
+        )
+        # r1 second time → rate limited
+        res2 = await engine.handle_prompt(
+            prompt_event=object(),
+            prompt_id="p2",
+            session_id="s1",
+            prompt_type="yes_no",
+            confidence="high",
+            prompt_text="Continue?",
+        )
+        # r2 fires once (confirm_enter)
+        res3 = await engine.handle_prompt(
+            prompt_event=object(),
+            prompt_id="p3",
+            session_id="s1",
+            prompt_type="confirm_enter",
+            confidence="high",
+            prompt_text="Press Enter",
+        )
+        assert res1.injected is True
+        assert res2.routed_to_human is True
+        assert res3.injected is True
 
-        asyncio.get_event_loop().run_until_complete(run())
-
-    def test_rate_limit_per_session(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_rate_limit_per_session(self, tmp_path: Path) -> None:
         """Same rule with max_auto_replies=1; different session_ids have separate counters."""
         injected: list[str] = []
         rule = make_auto_reply_rule("r1", max_auto_replies=1)
         policy = make_policy(rule)
         engine = make_engine(tmp_path, policy, injected=injected)
 
-        async def run() -> None:
-            res_s1a = await call_handle(engine, "session-A")
-            res_s1b = await call_handle(engine, "session-A")
-            res_s2 = await call_handle(engine, "session-B")
-            assert res_s1a.injected is True
-            assert res_s1b.routed_to_human is True
-            assert res_s2.injected is True
+        res_s1a = await call_handle(engine, "session-A")
+        res_s1b = await call_handle(engine, "session-A")
+        res_s2 = await call_handle(engine, "session-B")
+        assert res_s1a.injected is True
+        assert res_s1b.routed_to_human is True
+        assert res_s2.injected is True
 
-        asyncio.get_event_loop().run_until_complete(run())
-
-    def test_rate_limit_reset_session(self, tmp_path: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_rate_limit_reset_session(self, tmp_path: Path) -> None:
         """reset_session() clears the counter; auto-reply works again after reset."""
         injected: list[str] = []
         rule = make_auto_reply_rule("r1", max_auto_replies=1)
         policy = make_policy(rule)
         engine = make_engine(tmp_path, policy, injected=injected)
 
-        async def run() -> None:
-            r1 = await call_handle(engine, "s1")
-            r2 = await call_handle(engine, "s1")
-            assert r1.injected is True
-            assert r2.routed_to_human is True
+        r1 = await call_handle(engine, "s1")
+        r2 = await call_handle(engine, "s1")
+        assert r1.injected is True
+        assert r2.routed_to_human is True
 
-            engine.reset_session("s1")
+        engine.reset_session("s1")
 
-            r3 = await call_handle(engine, "s1")
-            assert r3.injected is True
-
-        asyncio.get_event_loop().run_until_complete(run())
+        r3 = await call_handle(engine, "s1")
+        assert r3.injected is True
         assert len(injected) == 2
 
 

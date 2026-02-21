@@ -249,6 +249,79 @@ def _fix_config(console: Console) -> None:
             console.print(f"  [red]ERR[/red]  Cannot create config at {cfg_path}: {exc}")
 
 
+def _check_database() -> dict:
+    """Check that the SQLite database is accessible and at the correct schema version."""
+    try:
+        from atlasbridge.core.config import atlasbridge_dir
+        from atlasbridge.core.constants import DB_FILENAME
+
+        db_path = atlasbridge_dir() / DB_FILENAME
+        if not db_path.exists():
+            return {
+                "name": "Database",
+                "status": "pass",
+                "detail": f"no database yet (will be created on first run): {db_path}",
+            }
+
+        import sqlite3
+
+        conn = sqlite3.connect(str(db_path), check_same_thread=False)
+        try:
+            from atlasbridge.core.store.migrations import LATEST_SCHEMA_VERSION, get_user_version
+
+            version = get_user_version(conn)
+            if version == LATEST_SCHEMA_VERSION:
+                return {
+                    "name": "Database",
+                    "status": "pass",
+                    "detail": f"schema v{version} at {db_path}",
+                }
+            if version < LATEST_SCHEMA_VERSION:
+                return {
+                    "name": "Database",
+                    "status": "warn",
+                    "detail": (
+                        f"schema v{version} (latest is v{LATEST_SCHEMA_VERSION}) — "
+                        f"will auto-migrate on next start: {db_path}"
+                    ),
+                }
+            return {
+                "name": "Database",
+                "status": "fail",
+                "detail": (
+                    f"schema v{version} is newer than this build supports "
+                    f"(v{LATEST_SCHEMA_VERSION}). Upgrade atlasbridge or delete {db_path}"
+                ),
+            }
+        finally:
+            conn.close()
+    except Exception as exc:  # noqa: BLE001
+        return {"name": "Database", "status": "fail", "detail": str(exc)}
+
+
+def _check_adapters() -> dict:
+    """Check that at least one adapter is registered."""
+    try:
+        import atlasbridge.adapters  # noqa: F401
+        from atlasbridge.adapters.base import AdapterRegistry
+
+        adapters = AdapterRegistry.list_all()
+        if not adapters:
+            return {
+                "name": "Adapters",
+                "status": "fail",
+                "detail": "no adapters registered — reinstall: pip install -U atlasbridge",
+            }
+        names = ", ".join(sorted(adapters.keys()))
+        return {
+            "name": "Adapters",
+            "status": "pass",
+            "detail": names,
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"name": "Adapters", "status": "fail", "detail": str(exc)}
+
+
 def cmd_doctor(fix: bool, as_json: bool, console: Console) -> None:
     if fix:
         _fix_config(console)
@@ -259,6 +332,8 @@ def cmd_doctor(fix: bool, as_json: bool, console: Console) -> None:
         _check_ptyprocess(),
         _check_config(),
         _check_bot_token(),
+        _check_database(),
+        _check_adapters(),
         _check_ui_assets(),
         _check_poller_lock(),
         _check_systemd(),

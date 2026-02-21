@@ -125,17 +125,19 @@ class TestCheckStaleLock:
 
 
 class TestTelegramChannelPollerLock:
-    def test_channel_starts_polling_when_lock_free(self, tmp_path) -> None:
+    @pytest.mark.asyncio
+    async def test_channel_starts_polling_when_lock_free(self, tmp_path) -> None:
         from atlasbridge.channels.telegram.channel import TelegramChannel
 
         ch = TelegramChannel(bot_token=_TOKEN, allowed_user_ids=[123], locks_dir=tmp_path)
-        asyncio.get_event_loop().run_until_complete(ch.start())
+        await ch.start()
         assert ch._polling is True
         assert ch._poller_lock is not None
         assert ch._poller_lock.acquired is True
-        asyncio.get_event_loop().run_until_complete(ch.close())
+        await ch.close()
 
-    def test_channel_send_only_when_lock_held(self, tmp_path) -> None:
+    @pytest.mark.asyncio
+    async def test_channel_send_only_when_lock_held(self, tmp_path) -> None:
         from atlasbridge.channels.telegram.channel import TelegramChannel
 
         # Another "process" holds the lock
@@ -143,28 +145,30 @@ class TestTelegramChannelPollerLock:
         assert blocker.acquire() is True
 
         ch = TelegramChannel(bot_token=_TOKEN, allowed_user_ids=[123], locks_dir=tmp_path)
-        asyncio.get_event_loop().run_until_complete(ch.start())
+        await ch.start()
         assert ch._polling is False  # send-only
         assert ch._running is True  # still running (can send messages)
-        asyncio.get_event_loop().run_until_complete(ch.close())
+        await ch.close()
         blocker.release()
 
-    def test_healthcheck_shows_polling_status(self, tmp_path) -> None:
+    @pytest.mark.asyncio
+    async def test_healthcheck_shows_polling_status(self, tmp_path) -> None:
         from atlasbridge.channels.telegram.channel import TelegramChannel
 
         ch = TelegramChannel(bot_token=_TOKEN, allowed_user_ids=[123], locks_dir=tmp_path)
-        asyncio.get_event_loop().run_until_complete(ch.start())
+        await ch.start()
         hc = ch.healthcheck()
         assert hc["polling"] is True
-        asyncio.get_event_loop().run_until_complete(ch.close())
+        await ch.close()
 
-    def test_close_releases_lock(self, tmp_path) -> None:
+    @pytest.mark.asyncio
+    async def test_close_releases_lock(self, tmp_path) -> None:
         from atlasbridge.channels.telegram.channel import TelegramChannel
 
         ch = TelegramChannel(bot_token=_TOKEN, allowed_user_ids=[123], locks_dir=tmp_path)
-        asyncio.get_event_loop().run_until_complete(ch.start())
+        await ch.start()
         assert ch._poller_lock.acquired is True
-        asyncio.get_event_loop().run_until_complete(ch.close())
+        await ch.close()
         assert ch._poller_lock is None
 
         # A new lock should be acquirable

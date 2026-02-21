@@ -21,6 +21,12 @@ Thread safety:
   SQLite WAL mode is enabled. The database is opened with check_same_thread=False
   because asyncio runs all coroutines on the same thread, but executor calls
   may cross thread boundaries. All writes use parameterised queries.
+
+Schema versioning:
+  Uses PRAGMA user_version and the migrations module. On connect(), WAL mode
+  and foreign keys are set first, then run_migrations() applies any pending
+  schema changes idempotently. This handles fresh installs, upgrades from
+  older schema versions, and partially-created databases after crashes.
 """
 
 from __future__ import annotations
@@ -35,75 +41,6 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_SCHEMA_VERSION = 1
-
-_DDL = """
-PRAGMA journal_mode=WAL;
-PRAGMA foreign_keys=ON;
-
-CREATE TABLE IF NOT EXISTS schema_version (
-    version INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS sessions (
-    id          TEXT PRIMARY KEY,
-    tool        TEXT NOT NULL DEFAULT '',
-    command     TEXT NOT NULL DEFAULT '',
-    cwd         TEXT NOT NULL DEFAULT '',
-    status      TEXT NOT NULL DEFAULT 'starting',
-    pid         INTEGER,
-    started_at  TEXT NOT NULL DEFAULT (datetime('now')),
-    ended_at    TEXT,
-    exit_code   INTEGER,
-    label       TEXT NOT NULL DEFAULT '',
-    metadata    TEXT NOT NULL DEFAULT '{}'
-);
-
-CREATE TABLE IF NOT EXISTS prompts (
-    id                  TEXT PRIMARY KEY,
-    session_id          TEXT NOT NULL REFERENCES sessions(id),
-    prompt_type         TEXT NOT NULL,
-    confidence          TEXT NOT NULL,
-    excerpt             TEXT NOT NULL DEFAULT '',
-    status              TEXT NOT NULL DEFAULT 'created',
-    nonce               TEXT NOT NULL,
-    nonce_used          INTEGER NOT NULL DEFAULT 0,
-    expires_at          TEXT NOT NULL,
-    created_at          TEXT NOT NULL DEFAULT (datetime('now')),
-    resolved_at         TEXT,
-    response_normalized TEXT,
-    channel_identity    TEXT,
-    channel_message_id  TEXT NOT NULL DEFAULT '',
-    metadata            TEXT NOT NULL DEFAULT '{}'
-);
-
-CREATE TABLE IF NOT EXISTS replies (
-    id               TEXT PRIMARY KEY,
-    prompt_id        TEXT NOT NULL REFERENCES prompts(id),
-    session_id       TEXT NOT NULL,
-    value            TEXT NOT NULL,
-    channel_identity TEXT NOT NULL,
-    timestamp        TEXT NOT NULL DEFAULT (datetime('now')),
-    nonce            TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS audit_events (
-    id          TEXT PRIMARY KEY,
-    event_type  TEXT NOT NULL,
-    session_id  TEXT NOT NULL DEFAULT '',
-    prompt_id   TEXT NOT NULL DEFAULT '',
-    payload     TEXT NOT NULL DEFAULT '{}',
-    timestamp   TEXT NOT NULL DEFAULT (datetime('now')),
-    prev_hash   TEXT NOT NULL DEFAULT '',
-    hash        TEXT NOT NULL DEFAULT ''
-);
-
-CREATE INDEX IF NOT EXISTS idx_prompts_session_status
-    ON prompts(session_id, status);
-CREATE INDEX IF NOT EXISTS idx_audit_timestamp
-    ON audit_events(timestamp);
-"""
-
 
 class Database:
     """SQLite persistence layer for AtlasBridge."""
@@ -112,7 +49,13 @@ class Database:
         self._path = db_path
         self._conn: sqlite3.Connection | None = None
 
+    @property
+    def path(self) -> Path:
+        return self._path
+
     def connect(self) -> None:
+        from atlasbridge.core.store.migrations import run_migrations
+
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(
             str(self._path),
@@ -120,21 +63,18 @@ class Database:
             detect_types=sqlite3.PARSE_DECLTYPES,
         )
         self._conn.row_factory = sqlite3.Row
-        self._conn.executescript(_DDL)
-        self._ensure_schema_version()
+
+        # Set pragmas before any DDL / migration work
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA foreign_keys=ON")
+
+        # Run idempotent schema migrations (fresh install or upgrade)
+        run_migrations(self._conn, self._path)
 
     def close(self) -> None:
         if self._conn:
             self._conn.close()
             self._conn = None
-
-    def _ensure_schema_version(self) -> None:
-        row = self._conn.execute("SELECT version FROM schema_version").fetchone()
-        if row is None:
-            self._conn.execute(
-                "INSERT INTO schema_version (version) VALUES (?)", (_SCHEMA_VERSION,)
-            )
-            self._conn.commit()
 
     @property
     def _db(self) -> sqlite3.Connection:
@@ -284,6 +224,7 @@ class Database:
         ).fetchone()
         prev_hash = last["hash"] if last else ""
 
+        now = datetime.now(UTC).isoformat()
         payload_str = json.dumps(payload, separators=(",", ":"), sort_keys=True)
         chain_input = f"{prev_hash}{event_id}{event_type}{payload_str}"
         event_hash = hashlib.sha256(chain_input.encode()).hexdigest()
@@ -291,10 +232,20 @@ class Database:
         self._db.execute(
             """
             INSERT INTO audit_events
-              (id, event_type, session_id, prompt_id, payload, prev_hash, hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+              (id, event_type, session_id, prompt_id, payload, timestamp,
+               prev_hash, hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (event_id, event_type, session_id, prompt_id, payload_str, prev_hash, event_hash),
+            (
+                event_id,
+                event_type,
+                session_id,
+                prompt_id,
+                payload_str,
+                now,
+                prev_hash,
+                event_hash,
+            ),
         )
         self._db.commit()
 
