@@ -251,10 +251,7 @@ def adapter() -> None:
 @click.option("--json", "as_json", is_flag=True, default=False)
 def adapter_list(as_json: bool) -> None:
     """Show available tool adapters."""
-    # Ensure all adapters are registered by importing them
-    import atlasbridge.adapters.claude_code  # noqa: F401
-    import atlasbridge.adapters.gemini_cli  # noqa: F401
-    import atlasbridge.adapters.openai_cli  # noqa: F401
+    import atlasbridge.adapters  # noqa: F401 — registers all built-in adapters
     from atlasbridge.adapters.base import AdapterRegistry
 
     adapters = AdapterRegistry.list_all()

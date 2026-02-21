@@ -10,8 +10,20 @@ from rich.console import Console
 
 def cmd_run(tool: str, command: list[str], label: str, cwd: str, console: Console) -> None:
     """Load config and run the tool under Aegis supervision (foreground)."""
+    import atlasbridge.adapters  # noqa: F401 — registers all built-in adapters
+    from atlasbridge.adapters.base import AdapterRegistry
     from atlasbridge.core.config import load_config
     from atlasbridge.core.exceptions import ConfigError, ConfigNotFoundError
+
+    # Validate the adapter exists before loading config / starting the daemon.
+    try:
+        AdapterRegistry.get(tool)
+    except KeyError:
+        available = ", ".join(sorted(AdapterRegistry.list_all().keys())) or "(none)"
+        console.print(f"[red]Unknown adapter:[/red] {tool!r}")
+        console.print(f"Available: {available}")
+        console.print("Run [cyan]atlasbridge adapter list[/cyan] for details.")
+        sys.exit(1)
 
     try:
         config = load_config()
