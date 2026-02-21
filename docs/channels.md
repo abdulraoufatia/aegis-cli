@@ -1,4 +1,4 @@
-# Aegis Channel Interface Specification
+# AtlasBridge Channel Interface Specification
 
 **Version:** 0.3.0
 **Status:** Authoritative Design
@@ -8,7 +8,7 @@
 
 ## 1. Purpose
 
-The channel layer is the outbound half of Aegis. Once the adapter layer has detected a prompt and the supervisor has created a `PromptEvent`, the channel is responsible for delivering that prompt to a human over whatever messaging platform they use, receiving their reply, and handing it back to the supervisor as a `Reply` object.
+The channel layer is the outbound half of AtlasBridge. Once the adapter layer has detected a prompt and the supervisor has created a `PromptEvent`, the channel is responsible for delivering that prompt to a human over whatever messaging platform they use, receiving their reply, and handing it back to the supervisor as a `Reply` object.
 
 ### The Channel Abstraction
 
@@ -38,7 +38,7 @@ from aegis.adapters.base import PromptEvent, Reply
 
 class BaseChannel(ABC):
     """
-    Abstract base for all Aegis notification and reply channels.
+    Abstract base for all AtlasBridge notification and reply channels.
 
     A channel is responsible for:
       1. Establishing and maintaining a connection to the messaging platform.
@@ -174,7 +174,7 @@ class BaseChannel(ABC):
         Return True if the channel is connected, authenticated, and healthy.
 
         Used by:
-          - `aegis doctor` — reports channel health in the diagnostic output.
+          - `atlasbridge doctor` — reports channel health in the diagnostic output.
           - The supervisor's startup sequence — waits for healthcheck() == True
             before beginning PTY supervision (with a 10s timeout).
           - The stall watchdog — if the channel is unhealthy during a pending prompt,
@@ -201,7 +201,7 @@ Source files:
 
 ### 3.2 Long Polling Architecture
 
-Telegram does not push events to bots; bots must poll `getUpdates`. Aegis uses long polling: each `getUpdates` call includes a `timeout=30` parameter, causing the Telegram API server to hold the connection open for up to 30 seconds and return as soon as an update arrives.
+Telegram does not push events to bots; bots must poll `getUpdates`. AtlasBridge uses long polling: each `getUpdates` call includes a `timeout=30` parameter, causing the Telegram API server to hold the connection open for up to 30 seconds and return as soon as an update arrives.
 
 ```
 TelegramBot.start()
@@ -267,7 +267,7 @@ Row 2: [⏩  Use default]
 
 ### 3.4 Callback Data Encoding
 
-Telegram's `callback_data` field has a hard limit of 64 bytes (64 ASCII characters). The Aegis callback format must fit within this limit.
+Telegram's `callback_data` field has a hard limit of 64 bytes (64 ASCII characters). The AtlasBridge callback format must fit within this limit.
 
 **Format:**
 
@@ -289,7 +289,7 @@ Total fixed overhead: 4 + 32 + 1 + 32 + 1 + 32 + 1 = 103 bytes. This exceeds Tel
 
 **Truncation strategy:**
 
-To stay within the 64-byte limit while preserving security, Aegis uses abbreviated identifiers in the callback data and resolves them via the database:
+To stay within the 64-byte limit while preserving security, AtlasBridge uses abbreviated identifiers in the callback data and resolves them via the database:
 
 ```
 ans:{short_prompt_id}:{nonce_prefix}:{value}
@@ -326,7 +326,7 @@ def parse_callback_data(data: str) -> tuple[str, str, str] | None:
 
 Telegram enforces a rate limit of approximately 30 messages per second per bot globally, and 1 message per second per chat. Exceeding this limit causes `429 Too Many Requests` responses with a `retry_after` field.
 
-**Aegis rate limit strategy:**
+**AtlasBridge rate limit strategy:**
 
 1. **Per-chat bucket:** The bot tracks the last send time per chat ID. If a send would exceed 1 message/second for that chat, it waits `max(0, 1.0 - elapsed)` seconds before sending. This is enforced in `_send_message_to`.
 
@@ -357,7 +357,7 @@ The Telegram bot responds to the following slash commands from allowed users:
 
 | Command | Description |
 |---|---|
-| `/sessions` | List all active Aegis sessions with their status and uptime |
+| `/sessions` | List all active AtlasBridge sessions with their status and uptime |
 | `/switch <session_id>` | Set the primary session for subsequent replies (multi-session disambiguation) |
 | `/status` | Show the current session's supervisor state, pending prompt count, and last activity time |
 | `/cancel <prompt_id>` | Cancel a pending prompt by injecting the safe default immediately |
@@ -365,7 +365,7 @@ The Telegram bot responds to the following slash commands from allowed users:
 
 **Multi-session handling:**
 
-When multiple `aegis run` instances are active simultaneously (e.g., Claude and another CLI tool), prompts from all sessions arrive in the same Telegram chat. Each prompt message includes a session identifier in its header so the user can distinguish them:
+When multiple `atlasbridge run` instances are active simultaneously (e.g., Claude and another CLI tool), prompts from all sessions arrive in the same Telegram chat. Each prompt message includes a session identifier in its header so the user can distinguish them:
 
 ```
 🤖 Claude Code is waiting for your input
@@ -395,7 +395,7 @@ Where `ttl` is formatted as `Xm Ys` (e.g., `9m 58s`) or `Xs` if under a minute.
 
 Session started notification:
 ```
-▶️ *Aegis session started*
+▶️ *AtlasBridge session started*
 
 Tool: `{tool}`
 CWD: `{cwd}`
@@ -404,7 +404,7 @@ Session: `{session_id[:8]}`
 
 Session ended notification:
 ```
-⏹ *Aegis session ended*
+⏹ *AtlasBridge session ended*
 
 Tool: `{tool}`
 Session: `{session_id[:8]}`
@@ -427,7 +427,7 @@ Auto-injected: *{injected!r}*
 The following is the complete flow from a user tapping a button in Telegram to the reply being queued for injection.
 
 ```
-User (Telegram)       Telegram API       TelegramBot (Aegis)         Database          Supervisor
+User (Telegram)       Telegram API       TelegramBot (AtlasBridge)         Database          Supervisor
       │                    │                    │                       │                  │
       │── tap button ──────►│                   │                       │                  │
       │                    │── callback_query ──►│                       │                  │
@@ -478,9 +478,9 @@ If `decide_prompt` returns `rows_affected = 0` (nonce mismatch, already answered
 
 **Socket Mode vs. Event API:**
 
-Aegis will use Slack's **Socket Mode** rather than the Event API. The rationale:
-- Socket Mode does not require a publicly accessible inbound URL. Aegis runs on a developer's local machine; exposing an inbound webhook endpoint would require a tunnel (ngrok) or a server.
-- Socket Mode uses an outbound WebSocket connection, consistent with Aegis's design principle of not requiring inbound ports.
+AtlasBridge will use Slack's **Socket Mode** rather than the Event API. The rationale:
+- Socket Mode does not require a publicly accessible inbound URL. AtlasBridge runs on a developer's local machine; exposing an inbound webhook endpoint would require a tunnel (ngrok) or a server.
+- Socket Mode uses an outbound WebSocket connection, consistent with AtlasBridge's design principle of not requiring inbound ports.
 - The latency is comparable to long polling.
 
 **Slash commands vs. Interactive Components:**
@@ -552,7 +552,7 @@ The Slack app requires the following OAuth scopes:
 | `im:write` | Send direct messages to users |
 | `users:read` | Resolve user IDs to verify allowed_users |
 
-The bot token (`xoxb-...`) is stored in `~/.aegis/config.toml` under `[slack]` alongside the app-level token (`xapp-...`) required for Socket Mode.
+The bot token (`xoxb-...`) is stored in `~/.atlasbridge/config.toml` under `[slack]` alongside the app-level token (`xapp-...`) required for Socket Mode.
 
 ### 4.5 Implementation Status
 
@@ -587,7 +587,7 @@ Key implementation challenges:
 
 A browser-based UI would allow users to respond to prompts from a desktop browser, with no third-party messaging platform dependency. The architecture:
 
-- Aegis starts a local HTTP server (e.g., on `localhost:7777`) when `web_ui_enabled = true` in config.
+- AtlasBridge starts a local HTTP server (e.g., on `localhost:7777`) when `web_ui_enabled = true` in config.
 - The UI is a single-page application that polls `/api/pending` or connects via WebSocket.
 - Prompts appear as cards with one-tap response buttons.
 - Authentication is token-based (a secret URL segment, not a login form).
@@ -678,7 +678,7 @@ from typing import AsyncIterator
 
 class MyChannelChannel(BaseChannel):
     """
-    <MyChannel> channel for Aegis.
+    <MyChannel> channel for AtlasBridge.
 
     Uses <protocol> for outbound messages and <mechanism> for receiving replies.
     """
@@ -705,7 +705,7 @@ Refer to Section 2 for the full docstrings. Pay particular attention to:
 
 ### Step 4: Add configuration support
 
-Add a `[<channel_name>]` section to the `AegisConfig` Pydantic model in `aegis/core/config.py`:
+Add a `[<channel_name>]` section to the `AtlasBridgeConfig` Pydantic model in `aegis/core/config.py`:
 
 ```python
 class MyChannelConfig(BaseModel):
@@ -714,14 +714,14 @@ class MyChannelConfig(BaseModel):
     allowed_users: list[str] = []
 ```
 
-Add the config section to the TOML template generated by `aegis setup`.
+Add the config section to the TOML template generated by `atlasbridge setup`.
 
 ### Step 5: Register the channel
 
 Add the channel to the channel factory in `aegis/core/routing/`:
 
 ```python
-def build_channels(config: AegisConfig) -> list[BaseChannel]:
+def build_channels(config: AtlasBridgeConfig) -> list[BaseChannel]:
     channels = []
     if config.telegram.bot_token:
         channels.append(TelegramBot(...))

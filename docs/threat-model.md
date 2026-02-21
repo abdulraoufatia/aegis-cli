@@ -1,24 +1,24 @@
-# Aegis Implementation Notes: Relay Correctness
+# AtlasBridge Implementation Notes: Relay Correctness
 
 **Version:** 0.2.0
 **Status:** Reference
 **Last updated:** 2026-02-20
 
-> **Important:** Aegis is not a security product. It is a remote interactive prompt relay. The notes below document correctness invariants and potential misuse scenarios for the relay mechanism — not a security posture claim.
+> **Important:** AtlasBridge is not a security product. It is a remote interactive prompt relay. The notes below document correctness invariants and potential misuse scenarios for the relay mechanism — not a security posture claim.
 
 ---
 
 ## Overview
 
-This document covers correctness concerns for the Aegis relay: how the system could behave incorrectly, and what implementation measures prevent that.
+This document covers correctness concerns for the AtlasBridge relay: how the system could behave incorrectly, and what implementation measures prevent that.
 
-It does not claim Aegis is a security firewall or that it protects against any class of attack.
+It does not claim AtlasBridge is a security firewall or that it protects against any class of attack.
 
 ---
 
 ## STRIDE analysis (retained for reference)
 
-The original STRIDE analysis below was written when Aegis was positioned as a "CLI firewall". It is retained as an implementation reference but should be read with the understanding that Aegis is a prompt relay, not a security enforcement layer.
+The original STRIDE analysis below was written when AtlasBridge was positioned as a "CLI firewall". It is retained as an implementation reference but should be read with the understanding that AtlasBridge is a prompt relay, not a security enforcement layer.
 
 STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Disclosure · **D**enial of Service · **E**levation of Privilege
 
@@ -47,7 +47,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 │  Trusted: Local machine (user's process space)          │
 │                                                         │
 │  ┌──────────────┐    ┌──────────────┐                  │
-│  │  AI Agent    │    │  Aegis Daemon│                  │
+│  │  AI Agent    │    │  AtlasBridge Daemon│                  │
 │  │  (claude)    │    │              │                  │
 │  └──────────────┘    └──────────────┘                  │
 │          │                   │                          │
@@ -85,9 +85,9 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 **Impact:** Critical (can approve arbitrary operations)
 
 **Mitigations:**
-- Telegram user ID whitelist (`AEGIS_TELEGRAM_ALLOWED_USERS`) — only specific user IDs can interact with the bot
+- Telegram user ID whitelist (`ATLASBRIDGE_TELEGRAM_ALLOWED_USERS`) — only specific user IDs can interact with the bot
 - Every incoming Telegram message is validated against the whitelist before processing
-- Bot token is stored in `~/.aegis/config.toml` (mode 0600)
+- Bot token is stored in `~/.atlasbridge/config.toml` (mode 0600)
 
 **Residual risk:** Low — whitelist enforcement makes spoofing non-trivial without also compromising the allowed user's Telegram account.
 
@@ -95,7 +95,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 
 #### S-2: AI Agent Identity Spoofing
 
-**Scenario:** A malicious process (not the actual Claude CLI) connects to the Aegis daemon socket and submits fake tool call events, potentially getting them approved.
+**Scenario:** A malicious process (not the actual Claude CLI) connects to the AtlasBridge daemon socket and submits fake tool call events, potentially getting them approved.
 
 **Attack vector:** Local (requires code execution on machine)
 **Likelihood:** Medium (trivially done by any local process)
@@ -112,7 +112,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 
 #### S-3: Config File Spoofing (Symlink Attack)
 
-**Scenario:** Attacker replaces `~/.aegis/config.toml` with a symlink to a malicious config that changes the allowed user list or bot token.
+**Scenario:** Attacker replaces `~/.atlasbridge/config.toml` with a symlink to a malicious config that changes the allowed user list or bot token.
 
 **Attack vector:** Local
 **Likelihood:** Low
@@ -131,7 +131,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 
 #### T-1: Policy File Tampering
 
-**Scenario:** An attacker (or malicious AI agent output) modifies `~/.aegis/policy.toml` to remove restrictive rules, allowing dangerous operations to proceed without approval.
+**Scenario:** An attacker (or malicious AI agent output) modifies `~/.atlasbridge/policy.toml` to remove restrictive rules, allowing dangerous operations to proceed without approval.
 
 **Attack vector:** Local (file write access)
 **Likelihood:** Medium
@@ -158,7 +158,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 **Mitigations:**
 - Audit log is append-only (file opened with O_APPEND)
 - Each entry includes SHA-256 hash of the previous entry (hash chain)
-- Doctor verifies hash chain integrity on `aegis doctor`
+- Doctor verifies hash chain integrity on `atlasbridge doctor`
 - Future: external log shipping to immutable store
 
 **Residual risk:** Low for passive tampering; hash chain detects modifications.
@@ -204,7 +204,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 
 #### R-1: Denial of Approval Action
 
-**Scenario:** A user claims they did not approve a destructive operation, but Aegis has a record. The user challenges the audit log.
+**Scenario:** A user claims they did not approve a destructive operation, but AtlasBridge has a record. The user challenges the audit log.
 
 **Attack vector:** Social
 **Likelihood:** Low
@@ -221,7 +221,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 
 #### R-2: Denial of Tool Call
 
-**Scenario:** AI agent denies issuing a tool call. Aegis must prove the call was made.
+**Scenario:** AI agent denies issuing a tool call. AtlasBridge must prove the call was made.
 
 **Attack vector:** Social
 **Likelihood:** Low
@@ -264,7 +264,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 **Impact:** Critical
 
 **Mitigations:**
-- Bot token stored in `~/.aegis/config.toml` (0600), not environment by default
+- Bot token stored in `~/.atlasbridge/config.toml` (0600), not environment by default
 - structlog masks values matching token patterns (regex: `\d+:[A-Za-z0-9_-]{35}`)
 - `.env` in `.gitignore`
 - `aegis config get telegram.bot_token` outputs `***REDACTED***` by default
@@ -347,7 +347,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 
 #### D-3: Database Lock Corruption
 
-**Scenario:** Aegis daemon crashes mid-write, leaving the SQLite database in an inconsistent state.
+**Scenario:** AtlasBridge daemon crashes mid-write, leaving the SQLite database in an inconsistent state.
 
 **Attack vector:** Internal failure
 **Likelihood:** Low
@@ -367,14 +367,14 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 
 #### E-1: Arbitrary Shell Execution from Telegram
 
-**Scenario:** An attacker sends a Telegram message containing a shell command and tricks Aegis into executing it.
+**Scenario:** An attacker sends a Telegram message containing a shell command and tricks AtlasBridge into executing it.
 
 **Attack vector:** External via Telegram
 **Likelihood:** Low (requires bot token or whitelisted account)
 **Impact:** Critical
 
 **Mitigations:**
-- Aegis NEVER executes arbitrary commands from Telegram messages
+- AtlasBridge NEVER executes arbitrary commands from Telegram messages
 - Only structured responses are accepted: `approve`, `deny` with approval ID
 - All Telegram input is parsed against a strict schema; anything else is rejected
 - No `/exec`, `/run`, or similar commands in the bot
@@ -403,7 +403,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 
 #### E-3: Config Injection via Environment Variables
 
-**Scenario:** An attacker sets `AEGIS_TELEGRAM_ALLOWED_USERS` in the environment to add themselves as an allowed user.
+**Scenario:** An attacker sets `ATLASBRIDGE_TELEGRAM_ALLOWED_USERS` in the environment to add themselves as an allowed user.
 
 **Attack vector:** Local (requires ability to set env vars in daemon's environment)
 **Likelihood:** Low
@@ -451,7 +451,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 | Malicious PyPI package in deps | Pin exact versions in production; use `pip-audit` |
 | Compromised GitHub Actions runner | Use pinned action SHAs (`actions/checkout@v4` → SHA) |
 | Dependabot PR introducing vulnerability | CI runs `bandit` and `pip-audit` on every PR |
-| Typosquatting of `aegis-cli` | Publish to PyPI early to claim namespace |
+| Typosquatting of `atlasbridge` | Publish to PyPI early to claim namespace |
 
 ---
 
@@ -469,7 +469,7 @@ STRIDE = **S**poofing · **T**ampering · **R**epudiation · **I**nformation Dis
 
 1. **I-3 (Telegram receives operation metadata)**: An accepted trade-off for usability. Mitigation: never send file contents.
 2. **E-3 (Config injection via env)**: Documented, intentional behavior for CI/CD and scripting use cases.
-3. **Local privilege (same user)**: Aegis does not protect against a fully compromised user account. The threat model assumes the user's machine and account are not already fully compromised.
+3. **Local privilege (same user)**: AtlasBridge does not protect against a fully compromised user account. The threat model assumes the user's machine and account are not already fully compromised.
 
 ---
 

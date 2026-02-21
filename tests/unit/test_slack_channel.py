@@ -11,8 +11,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from aegis.channels.slack.channel import SlackChannel
-from aegis.core.prompt.models import Confidence, PromptEvent, PromptType
+from atlasbridge.channels.slack.channel import SlackChannel
+from atlasbridge.core.prompt.models import Confidence, PromptEvent, PromptType
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -254,7 +254,7 @@ class TestHandleAction:
 
 class TestMultiChannel:
     def _make_multi(self) -> tuple:
-        from aegis.channels.multi import MultiChannel
+        from atlasbridge.channels.multi import MultiChannel
 
         ch1 = MagicMock()
         ch1.channel_name = "telegram"
@@ -276,7 +276,7 @@ class TestMultiChannel:
         return multi, ch1, ch2
 
     def test_requires_at_least_one_channel(self) -> None:
-        from aegis.channels.multi import MultiChannel
+        from atlasbridge.channels.multi import MultiChannel
 
         with pytest.raises(ValueError, match="at least one"):
             MultiChannel([])
@@ -293,7 +293,7 @@ class TestMultiChannel:
 
     @pytest.mark.asyncio
     async def test_send_prompt_falls_back_on_empty(self) -> None:
-        from aegis.channels.multi import MultiChannel
+        from atlasbridge.channels.multi import MultiChannel
 
         ch1 = MagicMock()
         ch1.channel_name = "telegram"

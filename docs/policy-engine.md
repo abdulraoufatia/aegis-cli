@@ -3,7 +3,7 @@
 **Version:** 0.2.0
 **Status:** Implemented
 
-> Note: Aegis is not a policy engine or security firewall. This document describes how Aegis detects that a process is waiting for input and decides how to handle it.
+> Note: AtlasBridge is not a policy engine or security firewall. This document describes how AtlasBridge detects that a process is waiting for input and decides how to handle it.
 
 ---
 

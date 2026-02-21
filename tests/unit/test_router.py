@@ -8,10 +8,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from aegis.core.prompt.models import Confidence, PromptEvent, PromptStatus, PromptType, Reply
-from aegis.core.routing.router import PromptRouter
-from aegis.core.session.manager import SessionManager
-from aegis.core.session.models import Session
+from atlasbridge.core.prompt.models import Confidence, PromptEvent, PromptStatus, PromptType, Reply
+from atlasbridge.core.routing.router import PromptRouter
+from atlasbridge.core.session.manager import SessionManager
+from atlasbridge.core.session.models import Session
 
 
 def _session(tool: str = "claude") -> Session:

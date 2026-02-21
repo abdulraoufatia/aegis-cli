@@ -8,7 +8,7 @@
 
 ## Overview
 
-Aegis must intercept tool calls made by AI agents (Claude Code, OpenAI CLI, etc.) without modifying those agents' code. This document analyzes the available interception strategies, selects the primary approach, and provides sequence diagrams for all key flows.
+AtlasBridge must intercept tool calls made by AI agents (Claude Code, OpenAI CLI, etc.) without modifying those agents' code. This document analyzes the available interception strategies, selects the primary approach, and provides sequence diagrams for all key flows.
 
 ---
 
@@ -38,10 +38,10 @@ aegis → subprocess(claude) → pipe → aegis interceptor
 
 ### Option B: PTY (Pseudo-Terminal) — PRIMARY
 
-Create a PTY pair. The AI CLI runs in the slave PTY; Aegis reads from the master side, intercepts tool calls, and relays I/O to the user's real terminal.
+Create a PTY pair. The AI CLI runs in the slave PTY; AtlasBridge reads from the master side, intercepts tool calls, and relays I/O to the user's real terminal.
 
 ```
-User terminal ←→ PTY master (Aegis) ←→ PTY slave (claude)
+User terminal ←→ PTY master (AtlasBridge) ←→ PTY slave (claude)
 ```
 
 **Pros:**
@@ -70,7 +70,7 @@ Use the AI CLI's own plugin or hook system to intercept tool calls.
 
 **Cons:**
 - Requires per-tool plugin support (Claude Code does support hooks, but API may change)
-- Couples Aegis to each vendor's API
+- Couples AtlasBridge to each vendor's API
 - Less portable
 
 **Verdict:** Supplement to PTY approach where available; not relied upon as primary.
@@ -97,13 +97,13 @@ Run a local HTTP proxy that intercepts AI API calls before they reach the vendor
 
 ## Selected Approach: PTY with Structured Event Parsing
 
-The PTY adapter wraps the AI CLI in a pseudo-terminal. Tool call events are emitted by the AI CLI as JSON-structured output (per each tool's output protocol). Aegis reads this output from the PTY master, detects tool call events, intercepts them, and decides the outcome before releasing or blocking execution.
+The PTY adapter wraps the AI CLI in a pseudo-terminal. Tool call events are emitted by the AI CLI as JSON-structured output (per each tool's output protocol). AtlasBridge reads this output from the PTY master, detects tool call events, intercepts them, and decides the outcome before releasing or blocking execution.
 
 ### How Claude Code Emits Tool Calls
 
-Claude Code (and similar tools) emit tool call events as structured JSON lines in their output stream when operating in non-interactive scripted or streamed mode. In interactive mode, they use a structured tool output format that Aegis can detect.
+Claude Code (and similar tools) emit tool call events as structured JSON lines in their output stream when operating in non-interactive scripted or streamed mode. In interactive mode, they use a structured tool output format that AtlasBridge can detect.
 
-Aegis identifies tool call events by:
+AtlasBridge identifies tool call events by:
 1. Watching for JSON objects matching the tool call schema
 2. Matching against known prefixes/suffixes in the PTY stream
 3. Buffering output until a complete event is identified
@@ -116,7 +116,7 @@ User Terminal
      │ (user keystrokes)
      ▼
 ┌─────────────────────────────────────────┐
-│            PTY Master (Aegis)           │
+│            PTY Master (AtlasBridge)           │
 │                                         │
 │  Input relay:                           │
 │    user keystrokes → PTY slave          │
@@ -146,7 +146,7 @@ User Terminal display
 ```mermaid
 sequenceDiagram
     participant U as User Terminal
-    participant A as Aegis (PTY Master)
+    participant A as AtlasBridge (PTY Master)
     participant C as Claude CLI (PTY Slave)
     participant P as Policy Engine
     participant DB as SQLite Store
@@ -172,7 +172,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant U as User Terminal
-    participant A as Aegis (PTY Master)
+    participant A as AtlasBridge (PTY Master)
     participant C as Claude CLI (PTY Slave)
     participant P as Policy Engine
     participant DB as SQLite Store
@@ -207,7 +207,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant C as Claude CLI (PTY Slave)
-    participant A as Aegis (PTY Master)
+    participant A as AtlasBridge (PTY Master)
     participant DB as SQLite Store
     participant T as Telegram Bot
     participant Ph as User's Phone
@@ -223,7 +223,7 @@ sequenceDiagram
     T->>A: callback: deny:d4e5f6:nonce456
     A->>DB: update approval(status=DENIED)
     A->>AL: append(event=approval_decision, decision=denied)
-    A->>C: error: "Operation denied by Aegis policy"
+    A->>C: error: "Operation denied by AtlasBridge policy"
     Note over C: Claude receives error, may retry differently or stop
     A->>T: "✗ Denied — git push blocked"
 ```
@@ -235,7 +235,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant C as Claude CLI
-    participant A as Aegis
+    participant A as AtlasBridge
     participant DB as SQLite Store
     participant T as Telegram Bot
     participant AL as Audit Log
@@ -249,7 +249,7 @@ sequenceDiagram
     A->>DB: check expiry → expired
     A->>DB: update approval(status=EXPIRED, action=DENIED)
     A->>AL: append(event=approval_timeout, action=auto_denied)
-    A->>C: error: "Operation timed out — auto-denied by Aegis"
+    A->>C: error: "Operation timed out — auto-denied by AtlasBridge"
     A->>T: "⏱️ Timed out — write_file /etc/hosts auto-denied"
 ```
 
@@ -260,7 +260,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant C as Claude CLI
-    participant A as Aegis
+    participant A as AtlasBridge
     participant P as Policy Engine
     participant AL as Audit Log
 
@@ -268,7 +268,7 @@ sequenceDiagram
     A->>P: evaluate(tool="read_file", path="/Users/ara/.env")
     P-->>A: action=deny (rule: block-secret-reads, priority=10)
     A->>AL: append(event=tool_call_blocked, rule=block-secret-reads)
-    A->>C: error: "Operation blocked by Aegis policy: Secret file access blocked"
+    A->>C: error: "Operation blocked by AtlasBridge policy: Secret file access blocked"
     Note over C: No Telegram notification for hard denies
 ```
 
@@ -280,13 +280,13 @@ sequenceDiagram
 sequenceDiagram
     participant U as User
     participant AW as aegis wrap CLI
-    participant D as Aegis Daemon
+    participant D as AtlasBridge Daemon
     participant C as Claude CLI
 
     U->>AW: aegis wrap claude
     AW->>D: connect to daemon socket
     D-->>AW: connection refused (daemon not running)
-    AW-->>U: Error: Aegis daemon is not running
+    AW-->>U: Error: AtlasBridge daemon is not running
                  Start it with: aegis start
     Note over C: Claude is NOT launched — fail safe
 ```
@@ -298,23 +298,23 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant C as Claude CLI
-    participant A as Aegis
+    participant A as AtlasBridge
     participant DB as SQLite Store
     participant T as Telegram Bot
 
-    Note over A: Aegis crashes mid-approval
+    Note over A: AtlasBridge crashes mid-approval
 
     Note over C: Claude CLI blocks (waiting for response)
     Note over C: After 30s timeout in Claude itself → Claude resumes with error
 
-    Note over A: Aegis restarts (aegis start)
+    Note over A: AtlasBridge restarts (aegis start)
     A->>DB: query pending approvals
     DB-->>A: approval a1b2c3 PENDING (expired? check)
     alt expired
         A->>DB: update(status=EXPIRED)
-        A->>T: "⚠️ Aegis restarted — approval a1b2c3 expired (was pending during crash)"
+        A->>T: "⚠️ AtlasBridge restarted — approval a1b2c3 expired (was pending during crash)"
     else still valid
-        A->>T: "⚠️ Aegis restarted — approval a1b2c3 still pending. Please re-approve."
+        A->>T: "⚠️ AtlasBridge restarted — approval a1b2c3 still pending. Please re-approve."
     end
 ```
 
@@ -325,7 +325,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant C as Claude CLI
-    participant A as Aegis
+    participant A as AtlasBridge
     participant T as Telegram Bot
     participant U as User (offline)
 
@@ -352,8 +352,8 @@ sequenceDiagram
 
 The PTY adapter handles I/O separation:
 
-- **stdout (PTY master → user terminal):** All AI CLI output, including tool call events, flows through here. Aegis reads this stream, extracts tool call events, and relays everything else.
-- **stderr:** Captured separately and relayed to the user's stderr. Aegis does not intercept stderr for tool calls.
+- **stdout (PTY master → user terminal):** All AI CLI output, including tool call events, flows through here. AtlasBridge reads this stream, extracts tool call events, and relays everything else.
+- **stderr:** Captured separately and relayed to the user's stderr. AtlasBridge does not intercept stderr for tool calls.
 - **stdin:** User keystrokes are forwarded directly to the PTY slave with no modification.
 
 When a tool call is suspended (awaiting approval):
@@ -369,9 +369,9 @@ When a tool call is suspended (awaiting approval):
 The wrapped tool is launched with a sanitized environment:
 
 **Removed from child environment:**
-- `AEGIS_TELEGRAM_BOT_TOKEN`
-- `AEGIS_TELEGRAM_ALLOWED_USERS`
-- `AEGIS_*` (all Aegis config vars)
+- `ATLASBRIDGE_TELEGRAM_BOT_TOKEN`
+- `ATLASBRIDGE_TELEGRAM_ALLOWED_USERS`
+- `AEGIS_*` (all AtlasBridge config vars)
 - `CLAUDE_API_KEY` passthrough is preserved (Claude needs it)
 
 **Added to child environment:**
@@ -382,18 +382,18 @@ The wrapped tool is launched with a sanitized environment:
 
 ## Signal Handling
 
-| Signal | Source | Aegis behavior |
+| Signal | Source | AtlasBridge behavior |
 |--------|--------|----------------|
 | SIGINT (Ctrl+C) | User | Forward to Claude CLI; if approval in-flight, notify user; daemon continues |
 | SIGTERM | OS / aegis stop | Forward to Claude CLI; drain in-flight approvals (deny after 5s); shutdown |
 | SIGPIPE | Broken pipe | Log and exit gracefully |
-| SIGHUP | `aegis stop --reload` | Reload config; re-read policy; restart Telegram polling |
+| SIGHUP | `atlasbridge stop --reload` | Reload config; re-read policy; restart Telegram polling |
 
 **SIGINT detail:**
 When the user presses Ctrl+C in an `aegis wrap` session:
 1. SIGINT is forwarded to Claude CLI (which may exit or handle it)
-2. Aegis checks for in-flight approvals
-3. If no pending approvals: Aegis waits for Claude to exit, then exits itself
+2. AtlasBridge checks for in-flight approvals
+3. If no pending approvals: AtlasBridge waits for Claude to exit, then exits itself
 4. If pending approvals: warning printed; approvals remain on Telegram (daemon handles them)
 5. Daemon is NOT stopped
 
@@ -415,7 +415,7 @@ Claude Code produces streaming output (tokens as they're generated). The PTY ada
 Some tool calls may execute for a long time (e.g., `bash` running tests for 5 minutes). During execution:
 - The tool call is logged as `EXECUTING` in the DB
 - A timeout can be configured per-operation type
-- If the tool call exceeds the execution timeout, Aegis sends SIGTERM to the subprocess
+- If the tool call exceeds the execution timeout, AtlasBridge sends SIGTERM to the subprocess
 - Audit log records the timeout event
 
 ---
@@ -426,7 +426,7 @@ When a user cancels an operation (via Telegram "Cancel" button or `aegis approva
 1. Approval status → DENIED
 2. PTY adapter writes an error to Claude's stdin: `{"error": "Operation cancelled by user"}`
 3. Claude CLI receives the error and handles it (usually stops the current operation)
-4. Aegis logs the cancellation in the audit log
+4. AtlasBridge logs the cancellation in the audit log
 
 ---
 

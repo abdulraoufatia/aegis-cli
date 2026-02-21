@@ -1,4 +1,4 @@
-# Aegis Architecture
+# AtlasBridge Architecture
 
 **Version:** 0.2.0
 **Status:** Reference
@@ -26,11 +26,11 @@
 
 ## 1. Overview
 
-Aegis is the universal human-in-the-loop control plane for AI developer agents. It sits transparently between the operator and an AI coding agent running in a terminal, intercepting every moment the agent pauses and waits for human input, forwarding that pause to a mobile channel, and relaying the human's decision back into the process's standard input. Execution resumes without the operator ever returning to their desk.
+AtlasBridge is the universal human-in-the-loop control plane for AI developer agents. It sits transparently between the operator and an AI coding agent running in a terminal, intercepting every moment the agent pauses and waits for human input, forwarding that pause to a mobile channel, and relaying the human's decision back into the process's standard input. Execution resumes without the operator ever returning to their desk.
 
-The core loop is narrow by design. When `aegis run claude` is invoked, Aegis spawns the AI CLI inside a POSIX pseudoterminal (PTY), so the wrapped process receives a genuine terminal environment — full colour, readline, cursor control, and resize signals — indistinguishable from a normal interactive session. A set of four concurrent asyncio tasks continuously reads the PTY output stream, forwards every byte to the host terminal, and feeds the content through a tri-signal prompt detector. When the detector fires with sufficient confidence that the process is waiting for input, Aegis serialises a `PromptEvent` to its local SQLite store, sends a formatted message with an inline keyboard to Telegram, and enters an awaiting state. The operator taps a button or types a reply on their phone. The reply traverses Telegram's API back to the long-polling bot running on the local machine, is validated against the pending prompt's nonce and TTL, and is injected as raw bytes into the PTY's master file descriptor. The child process reads those bytes from its standard input and continues running.
+The core loop is narrow by design. When `atlasbridge run claude` is invoked, AtlasBridge spawns the AI CLI inside a POSIX pseudoterminal (PTY), so the wrapped process receives a genuine terminal environment — full colour, readline, cursor control, and resize signals — indistinguishable from a normal interactive session. A set of four concurrent asyncio tasks continuously reads the PTY output stream, forwards every byte to the host terminal, and feeds the content through a tri-signal prompt detector. When the detector fires with sufficient confidence that the process is waiting for input, AtlasBridge serialises a `PromptEvent` to its local SQLite store, sends a formatted message with an inline keyboard to Telegram, and enters an awaiting state. The operator taps a button or types a reply on their phone. The reply traverses Telegram's API back to the long-polling bot running on the local machine, is validated against the pending prompt's nonce and TTL, and is injected as raw bytes into the PTY's master file descriptor. The child process reads those bytes from its standard input and continues running.
 
-Aegis does not classify operations as dangerous, block tool calls, parse agent intent, or enforce policy. It is a relay with correctness invariants: the right reply reaches the right prompt, exactly once, only from an authorised identity, before the prompt's TTL expires. Those invariants are implemented through atomic database transitions, per-session injection locks, one-time nonces, and an allowlist of Telegram user IDs. They are correctness mechanisms, not a security posture claim.
+AtlasBridge does not classify operations as dangerous, block tool calls, parse agent intent, or enforce policy. It is a relay with correctness invariants: the right reply reaches the right prompt, exactly once, only from an authorised identity, before the prompt's TTL expires. Those invariants are implemented through atomic database transitions, per-session injection locks, one-time nonces, and an allowlist of Telegram user IDs. They are correctness mechanisms, not a security posture claim.
 
 ---
 
@@ -46,8 +46,8 @@ flowchart TD
         DET["Prompt Detector\n(Tri-Signal)"]
         ROUTER["Prompt Router"]
         SESSION["Session Manager"]
-        STORE[("SQLite Store\n~/.aegis/aegis.db")]
-        AUDIT[("Audit Log\n~/.aegis/audit.log")]
+        STORE[("SQLite Store\n~/.atlasbridge/atlasbridge.db")]
+        AUDIT[("Audit Log\n~/.atlasbridge/audit.log")]
         GATE["Injection Gate\n(per-session lock)"]
         RECV["Reply Receiver\n(asyncio.Queue)"]
     end
@@ -152,13 +152,13 @@ The package is structured so that the `core/` layer has zero knowledge of specif
 
 ### 4.1 PTY / ConPTY Wrapping
 
-On macOS and Linux, Aegis uses `ptyprocess.PtyProcess.spawn()` to launch the child process inside a pseudoterminal pair. The supervisor holds the master file descriptor; the child process holds the slave. Before spawning, Aegis calls `os.get_terminal_size()` to capture the current host terminal dimensions and passes them to `ptyprocess` so the child sees an accurate `TIOCGWINSZ` response. The host terminal is then placed into raw mode (`tty.setraw(sys.stdin.fileno())`) so that all bytes — including control sequences, escape codes, and Ctrl-key events — pass through unmodified. On exit or crash, `termios.tcsetattr` restores the saved terminal attributes.
+On macOS and Linux, AtlasBridge uses `ptyprocess.PtyProcess.spawn()` to launch the child process inside a pseudoterminal pair. The supervisor holds the master file descriptor; the child process holds the slave. Before spawning, AtlasBridge calls `os.get_terminal_size()` to capture the current host terminal dimensions and passes them to `ptyprocess` so the child sees an accurate `TIOCGWINSZ` response. The host terminal is then placed into raw mode (`tty.setraw(sys.stdin.fileno())`) so that all bytes — including control sequences, escape codes, and Ctrl-key events — pass through unmodified. On exit or crash, `termios.tcsetattr` restores the saved terminal attributes.
 
-On Windows (planned), Aegis will use the ConPTY API (`kernel32.CreatePseudoConsole`) through a thin C extension or the `winpty` library. The PTY base class (`BasePTY`) is already defined so that swapping in a ConPTY backend requires only a new `src/aegis/os/tty/windows.py` implementation.
+On Windows (planned), AtlasBridge will use the ConPTY API (`kernel32.CreatePseudoConsole`) through a thin C extension or the `winpty` library. The PTY base class (`BasePTY`) is already defined so that swapping in a ConPTY backend requires only a new `src/aegis/os/tty/windows.py` implementation.
 
 ### 4.2 Async Event Loop: Four Concurrent Tasks
 
-`aegis run <tool>` starts a single `asyncio` event loop. Four tasks run concurrently inside that loop for the lifetime of the session:
+`atlasbridge run <tool>` starts a single `asyncio` event loop. Four tasks run concurrently inside that loop for the lifetime of the session:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -205,7 +205,7 @@ The gate guarantees that at most one injection is in-flight at any time and that
 
 ### 4.5 Bounded Buffer Strategy
 
-The rolling output buffer is a circular byte buffer. New bytes overwrite the oldest when the buffer is full. The default capacity is 4096 bytes, configurable via `buffer_size_bytes` in `~/.aegis/config.toml`. The circular design ensures that the buffer always holds the most recent N bytes of output — the portion most likely to contain the active prompt — without requiring allocation of unbounded memory during long-running sessions.
+The rolling output buffer is a circular byte buffer. New bytes overwrite the oldest when the buffer is full. The default capacity is 4096 bytes, configurable via `buffer_size_bytes` in `~/.atlasbridge/config.toml`. The circular design ensures that the buffer always holds the most recent N bytes of output — the portion most likely to contain the active prompt — without requiring allocation of unbounded memory during long-running sessions.
 
 ### 4.6 Prompt/Reply Cycle — Sequence Diagram
 
@@ -327,12 +327,12 @@ class Confidence(str, enum.Enum):
 When a `PromptEvent` is emitted with `Confidence.LOW` (or `Confidence.MED` without a concurrent pattern match), the Prompt Router does not immediately forward the raw prompt to the operator. Instead, it first sends a disambiguating message:
 
 ```
-Aegis detected a possible prompt (low confidence).
+AtlasBridge detected a possible prompt (low confidence).
 
 Last output:
   > (truncated to 200 chars)
 
-What should Aegis do?
+What should AtlasBridge do?
 [Send Enter]  [Cancel / Skip]  [Show Last 500 chars]
 ```
 
@@ -415,7 +415,7 @@ An update that affects 0 rows is silently discarded. This prevents duplicate Tel
 
 ### 7.1 Session Identification
 
-Each `aegis run` invocation creates a session record with three-part identity:
+Each `atlasbridge run` invocation creates a session record with three-part identity:
 
 ```
 session_id  =  UUID v4                         (primary key)
@@ -427,7 +427,7 @@ The `session_id` is generated at process spawn time and is embedded in every `Pr
 
 ### 7.2 Prompt Encoding in Telegram Callback Data
 
-Telegram inline keyboard buttons carry `callback_data` strings of at most 64 bytes. Aegis encodes all routing information needed to unambiguously locate and validate a reply within that constraint:
+Telegram inline keyboard buttons carry `callback_data` strings of at most 64 bytes. AtlasBridge encodes all routing information needed to unambiguously locate and validate a reply within that constraint:
 
 ```
 ans:{prompt_id}:{session_id}:{nonce}:{value}
@@ -561,7 +561,7 @@ Adding a new channel (Slack, WhatsApp, web UI) requires:
 
 1. Create `src/aegis/channels/<name>/` package.
 2. Implement `BaseChannel` with the four abstract methods.
-3. Register the channel name in `AegisConfig` as a valid `channel` value.
+3. Register the channel name in `AtlasBridgeConfig` as a valid `channel` value.
 4. No changes to `core/`, `adapters/`, or the PTY supervisor are required.
 
 The router dispatches to whichever channel is configured; the rest of the system is channel-agnostic.
@@ -623,7 +623,7 @@ class BaseAdapter(ABC):
 
 The `ClaudeAdapter` (registered as `"claude"`) handles the Claude CLI's terminal interaction model. Key specifics:
 
-- **Launch:** Spawns `claude [args]` via `ptyprocess.PtyProcess.spawn()` with host terminal dimensions. The `--output-format stream-json` flag is not used in prompt-relay mode (it is relevant only for tool-interception mode, which is a separate future feature). In relay mode, Aegis monitors the PTY output stream as plain bytes.
+- **Launch:** Spawns `claude [args]` via `ptyprocess.PtyProcess.spawn()` with host terminal dimensions. The `--output-format stream-json` flag is not used in prompt-relay mode (it is relevant only for tool-interception mode, which is a separate future feature). In relay mode, AtlasBridge monitors the PTY output stream as plain bytes.
 - **Detection:** Delegates entirely to the tri-signal `PromptDetector`. Pattern sets are tuned for Claude Code's specific prompt vocabulary, including its permission-request prompts and its "Press Enter to continue" pagination prompts.
 - **Injection:** Calls `os.write(self._proc.fd, value)` after acquiring the injection gate. Claude Code echoes the injected characters back through the PTY, which is suppressed by the 150 ms echo window.
 - **Value normalisation:** Maps Telegram callback values to PTY bytes:
@@ -658,7 +658,7 @@ class AdapterRegistry:
         """Return all registered tool names."""
 ```
 
-At `aegis run <tool>` time, the registry resolves the adapter class, logs a warning if falling back to generic, and instantiates it with the session configuration.
+At `atlasbridge run <tool>` time, the registry resolves the adapter class, logs a warning if falling back to generic, and instantiates it with the session configuration.
 
 ---
 
@@ -666,9 +666,9 @@ At `aegis run <tool>` time, the registry resolves the adapter class, logs a warn
 
 ### 10.1 SQLite Event Store
 
-The operational database lives at `~/.aegis/aegis.db` and is opened in WAL (Write-Ahead Logging) mode, which allows concurrent reads during long-polling without blocking writes. The schema has four tables:
+The operational database lives at `~/.atlasbridge/atlasbridge.db` and is opened in WAL (Write-Ahead Logging) mode, which allows concurrent reads during long-polling without blocking writes. The schema has four tables:
 
-**`sessions`** — one row per `aegis run` invocation.
+**`sessions`** — one row per `atlasbridge run` invocation.
 
 ```sql
 CREATE TABLE sessions (
@@ -720,11 +720,11 @@ CREATE TABLE replies (
 
 ### 10.2 Schema Migrations
 
-Migration files live in `src/aegis/core/store/migrations/` numbered as `001_initial.sql`, `002_...sql`, etc. The migration runner applies all unapplied migrations in sequence, recording each in `schema_version`. Migrations are forward-only. The database is backed up to `~/.aegis/aegis.db.bak` before any migration run.
+Migration files live in `src/aegis/core/store/migrations/` numbered as `001_initial.sql`, `002_...sql`, etc. The migration runner applies all unapplied migrations in sequence, recording each in `schema_version`. Migrations are forward-only. The database is backed up to `~/.atlasbridge/atlasbridge.db.bak` before any migration run.
 
 ### 10.3 Append-Only Audit Log with Hash Chain
 
-The audit log is a separate file (`~/.aegis/audit.log`) written as JSON Lines. It is deliberately separate from the SQLite database so that database corruption or deletion does not affect audit integrity.
+The audit log is a separate file (`~/.atlasbridge/audit.log`) written as JSON Lines. It is deliberately separate from the SQLite database so that database corruption or deletion does not affect audit integrity.
 
 Each line is a JSON object:
 
@@ -751,7 +751,7 @@ The `hash` field is `SHA-256(full JSON string excluding the "hash" field itself)
 
 | Event | Trigger |
 |---|---|
-| `SESSION_START` | `aegis run` spawns child process |
+| `SESSION_START` | `atlasbridge run` spawns child process |
 | `PROMPT_DETECTED` | PromptDetector emits PromptEvent |
 | `PROMPT_ROUTED` | Channel `send_prompt()` succeeds |
 | `REPLY_RECEIVED` | `decide_prompt()` atomic update succeeds (1 row affected) |
@@ -786,7 +786,7 @@ aegis status --all
 These are mandatory correctness guarantees. Every one of them is enforced in code; none is advisory.
 
 **1. Allowlisted channel identities only.**
-The Telegram bot validates every incoming `callback_query` and `message` against the `allowed_users` list from `AegisConfig` before any processing. Messages from non-allowlisted users are discarded with a log warning. The allowlist is loaded at startup and refreshed on SIGHUP; it cannot be updated by a running session.
+The Telegram bot validates every incoming `callback_query` and `message` against the `allowed_users` list from `AtlasBridgeConfig` before any processing. Messages from non-allowlisted users are discarded with a log warning. The allowlist is loaded at startup and refreshed on SIGHUP; it cannot be updated by a running session.
 
 **2. prompt_id + session_id matching for all replies.**
 `decide_prompt()` requires both `prompt_id` and `session_id` to match the stored record. A reply that carries the correct `prompt_id` but a mismatched `session_id` is rejected. This prevents cross-session injection even if two sessions happen to produce prompts with similar excerpts.
@@ -810,9 +810,9 @@ The channel layer enforces a per-session inbound rate limit (default: 10 process
 
 ## 12. Security Model
 
-Aegis is not a security product.
+AtlasBridge is not a security product.
 
-### What Aegis does NOT do
+### What AtlasBridge does NOT do
 
 - It does not classify tool calls or terminal operations as dangerous or safe.
 - It does not block any operation based on content, intent, or risk.
@@ -822,9 +822,9 @@ Aegis is not a security product.
 - It does not provide any guarantee that an AI agent acting autonomously between prompts cannot cause harm.
 - It does not protect against a fully compromised local user account or machine.
 
-### What Aegis DOES enforce
+### What AtlasBridge DOES enforce
 
-Aegis enforces the seven correctness invariants described in Section 11. These exist to make the relay work reliably, not to provide a security posture:
+AtlasBridge enforces the seven correctness invariants described in Section 11. These exist to make the relay work reliably, not to provide a security posture:
 
 - The right reply reaches the right prompt (prompt_id + session_id + nonce matching).
 - Replies come only from the configured operator identity (Telegram user ID allowlist).
@@ -832,7 +832,7 @@ Aegis enforces the seven correctness invariants described in Section 11. These e
 - Expired prompts are never injected from late-arriving replies (TTL enforcement).
 - Injection only occurs while the CLI process is actively waiting on stdin (injection gate).
 
-The Telegram bot token must be treated as a secret. If it is compromised, anyone who obtains it can interact with the bot — but they are still constrained by the `allowed_users` allowlist (Telegram user IDs), which is a separate credential. Both are stored in `~/.aegis/config.toml` with mode 0600.
+The Telegram bot token must be treated as a secret. If it is compromised, anyone who obtains it can interact with the bot — but they are still constrained by the `allowed_users` allowlist (Telegram user IDs), which is a separate credential. Both are stored in `~/.atlasbridge/config.toml` with mode 0600.
 
 ---
 
@@ -847,7 +847,7 @@ The Telegram bot token must be treated as a secret. If it is compromised, anyone
 | Configuration | `pydantic` v2 + `tomllib` | Typed, validated config with IDE completion; TOML is human-editable and has no ambiguous quoting rules |
 | Persistence | `sqlite3` (stdlib) in WAL mode | Zero-dependency local store; WAL allows concurrent reads during long-poll; sufficient for single-machine workload |
 | CLI framework | `click` | Composable command groups; decorator-based; straightforward testability via `CliRunner` |
-| Terminal output | `rich` | Status tables, spinners, and coloured output for `aegis status`, `aegis doctor`, `aegis approvals` |
+| Terminal output | `rich` | Status tables, spinners, and coloured output for `atlasbridge status`, `atlasbridge doctor`, `aegis approvals` |
 | Logging | stdlib `logging` + optional `structlog` | Structured JSON output when `structlog` is installed; falls back to plain text; no mandatory heavy dependency |
 | Audit hash chain | `hashlib.sha256` (stdlib) | No external dependency; SHA-256 is sufficient for tamper-evidence in this context |
 | Nonce generation | `secrets.token_hex` (stdlib) | CSPRNG-backed; 128 bits of entropy per nonce; no external dependency |
@@ -859,4 +859,4 @@ The Telegram bot token must be treated as a secret. If it is compromised, anyone
 
 ---
 
-*This document describes the architecture of Aegis as of version 0.2.0. The canonical source of truth for any component's behaviour is the implementation and its tests.*
+*This document describes the architecture of AtlasBridge as of version 0.2.0. The canonical source of truth for any component's behaviour is the implementation and its tests.*

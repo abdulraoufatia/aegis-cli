@@ -1,23 +1,23 @@
-# Aegis (AegisCLI)
+# AtlasBridge (AtlasBridge)
 
 > **Universal human-in-the-loop control plane for AI developer agents.**
 
-[![CI](https://github.com/abdulraoufatia/aegis-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/abdulraoufatia/aegis-cli/actions/workflows/ci.yml)
+[![CI](https://github.com/abdulraoufatia/atlasbridge/actions/workflows/ci.yml/badge.svg)](https://github.com/abdulraoufatia/atlasbridge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![Version](https://img.shields.io/badge/version-0.2.0--dev-green.svg)](CHANGELOG.md)
 
 ---
 
-Aegis sits between you and your AI coding agent. Whenever your agent pauses and requires human input — approval, confirmation, a choice, or clarification — Aegis forwards that prompt to your phone.
+AtlasBridge sits between you and your AI coding agent. Whenever your agent pauses and requires human input — approval, confirmation, a choice, or clarification — AtlasBridge forwards that prompt to your phone.
 
-You respond from your phone, from a channel such as Telegram or WhatsApp, Slack or others. Aegis relays your decision back to the CLI. Execution resumes.
+You respond from your phone, from a channel such as Telegram or WhatsApp, Slack or others. AtlasBridge relays your decision back to the CLI. Execution resumes.
 
 No walking back to your desk. No missed prompts. You stay in control.
 
 ```
 ┌──────────────┐        ┌───────────────┐        ┌─────────────────┐
-│  AI Agent    │──────► │     Aegis     │──────► │   Your Phone    │
+│  AI Agent    │──────► │     AtlasBridge     │──────► │   Your Phone    │
 │ (Claude CLI) │        │  Prompt Relay │        │   (Telegram)    │
 │              │◄────── │               │◄────── │                 │
 └──────────────┘        └───────────────┘        └─────────────────┘
@@ -29,14 +29,14 @@ No walking back to your desk. No missed prompts. You stay in control.
 
 ## How it works
 
-1. `aegis run claude` — wraps your AI CLI in a PTY supervisor
+1. `atlasbridge run claude` — wraps your AI CLI in a PTY supervisor
 2. The **tri-signal prompt detector** watches the output stream
-3. When a prompt is detected, Aegis sends it to your Telegram (or Slack)
+3. When a prompt is detected, AtlasBridge sends it to your Telegram (or Slack)
 4. You tap a button or send a reply on your phone
-5. Aegis injects your answer into the CLI's stdin
+5. AtlasBridge injects your answer into the CLI's stdin
 6. The agent continues
 
-That's it. Aegis is a relay, not a firewall. It does not interpret commands, score risks, or block actions. It asks you — and only you — at the exact moment the agent needs human input.
+That's it. AtlasBridge is a relay, not a firewall. It does not interpret commands, score risks, or block actions. It asks you — and only you — at the exact moment the agent needs human input.
 
 ---
 
@@ -55,9 +55,9 @@ That's it. Aegis is a relay, not a firewall. It does not interpret commands, sco
 ## Quick start (v0.2.0 target)
 
 ```bash
-pip install aegis-cli
+pip install atlasbridge
 
-# First-time setup (creates ~/.aegis/config.toml)
+# First-time setup (creates ~/.atlasbridge/config.toml)
 aegis setup
 
 # Wrap Claude Code
@@ -117,7 +117,7 @@ docs/           — design documents (see table above)
 
 ## Core invariants
 
-Aegis guarantees the following regardless of channel, adapter, or concurrency:
+AtlasBridge guarantees the following regardless of channel, adapter, or concurrency:
 
 1. **No duplicate injection** — nonce idempotency via atomic SQL guard
 2. **No expired injection** — TTL enforced in the database WHERE clause

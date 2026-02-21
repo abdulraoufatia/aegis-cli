@@ -1,4 +1,4 @@
-# Aegis Tool Adapter Abstraction Design
+# AtlasBridge Tool Adapter Abstraction Design
 
 **Version:** 0.1.0
 **Status:** Design
@@ -8,7 +8,7 @@
 
 ## Overview
 
-Aegis must work with multiple AI CLI tools (Claude Code, OpenAI CLI, and future tools). The tool adapter abstraction provides a vendor-neutral interface for:
+AtlasBridge must work with multiple AI CLI tools (Claude Code, OpenAI CLI, and future tools). The tool adapter abstraction provides a vendor-neutral interface for:
 1. Launching the tool in a controlled environment
 2. Intercepting tool call events from the tool's output stream
 3. Injecting approval decisions back into the tool's input
@@ -68,7 +68,7 @@ class ToolAdapter(ABC):
         Args:
             args: Command-line arguments to pass to the tool
             env: Environment variables for the tool's process
-            session_id: Aegis session ID for this invocation
+            session_id: AtlasBridge session ID for this invocation
         """
         ...
 
@@ -280,7 +280,7 @@ class ClaudeAdapter(ToolAdapter):
             "type": "tool_result",
             "tool_use_id": event.raw_id,
             "is_error": True,
-            "content": f"Operation blocked by Aegis: {reason}",
+            "content": f"Operation blocked by AtlasBridge: {reason}",
         })
         await self._pty.write(error_response + "\n")
 ```

@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from aegis.cli.main import cli
+from atlasbridge.cli.main import cli
 
 VALID_TOKEN = "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi"
 
@@ -86,7 +86,7 @@ class TestStatusCommand:
         result = runner.invoke(
             cli,
             ["status"],
-            env={"AEGIS_CONFIG": str(config_path)},
+            env={"ATLASBRIDGE_CONFIG": str(config_path)},
             catch_exceptions=False,
         )
         assert result.exit_code == 0
@@ -95,7 +95,7 @@ class TestStatusCommand:
         result = runner.invoke(
             cli,
             ["status", "--json"],
-            env={"AEGIS_CONFIG": str(config_path)},
+            env={"ATLASBRIDGE_CONFIG": str(config_path)},
             catch_exceptions=False,
         )
         assert result.exit_code == 0
@@ -125,7 +125,7 @@ class TestVersionCommand:
     def test_version_output(self, runner: CliRunner) -> None:
         result = runner.invoke(cli, ["version"], catch_exceptions=False)
         assert result.exit_code == 0
-        assert "aegis" in result.output.lower()
+        assert "atlasbridge" in result.output.lower()
 
     def test_version_json(self, runner: CliRunner) -> None:
         result = runner.invoke(cli, ["version", "--json"], catch_exceptions=False)
@@ -133,7 +133,7 @@ class TestVersionCommand:
         import json
 
         data = json.loads(result.output)
-        assert "aegis" in data
+        assert "atlasbridge" in data
         assert "python" in data
 
 
@@ -147,7 +147,7 @@ class TestDoctorCommand:
         result = runner.invoke(
             cli,
             ["doctor"],
-            env={"AEGIS_CONFIG": str(config_path)},
+            env={"ATLASBRIDGE_CONFIG": str(config_path)},
             catch_exceptions=False,
         )
         assert isinstance(result.exit_code, int)
@@ -156,7 +156,7 @@ class TestDoctorCommand:
         result = runner.invoke(
             cli,
             ["doctor", "--json"],
-            env={"AEGIS_CONFIG": str(config_path)},
+            env={"ATLASBRIDGE_CONFIG": str(config_path)},
             catch_exceptions=False,
         )
         assert result.exit_code == 0

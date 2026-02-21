@@ -1,4 +1,4 @@
-# Aegis Data Model Design
+# AtlasBridge Data Model Design
 
 **Version:** 0.1.0
 **Status:** Design
@@ -8,7 +8,7 @@
 
 ## Overview
 
-Aegis uses SQLite as its local state store. All state is stored in `~/.aegis/aegis.db`. The audit log is a separate append-only file (`~/.aegis/audit.log`) to ensure tamper-evidence independence.
+AtlasBridge uses SQLite as its local state store. All state is stored in `~/.atlasbridge/atlasbridge.db`. The audit log is a separate append-only file (`~/.atlasbridge/audit.log`) to ensure tamper-evidence independence.
 
 ---
 
@@ -239,7 +239,7 @@ Migrations are always forward-only (no rollback). DB is backed up before each mi
 
 ## Audit Log (Separate File)
 
-The audit log is stored in `~/.aegis/audit.log` as JSON Lines (one event per line).
+The audit log is stored in `~/.atlasbridge/audit.log` as JSON Lines (one event per line).
 
 ### Format
 
@@ -269,7 +269,7 @@ Each entry includes:
 
 The first entry has `prev_hash: "genesis"`.
 
-The hash chain allows `aegis doctor` to verify the audit log has not been tampered with by recomputing the chain from entry 1.
+The hash chain allows `atlasbridge doctor` to verify the audit log has not been tampered with by recomputing the chain from entry 1.
 
 ### Event Types
 

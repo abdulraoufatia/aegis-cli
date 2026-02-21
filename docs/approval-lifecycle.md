@@ -1,4 +1,4 @@
-# Aegis Approval Lifecycle Design
+# AtlasBridge Approval Lifecycle Design
 
 **Version:** 0.1.0
 **Status:** Design
@@ -8,7 +8,7 @@
 
 ## Overview
 
-An "approval" is the central unit of work in Aegis. Every tool call that the policy engine marks as `require_approval` creates an approval record that must be resolved before the tool call proceeds or is blocked.
+An "approval" is the central unit of work in AtlasBridge. Every tool call that the policy engine marks as `require_approval` creates an approval record that must be resolved before the tool call proceeds or is blocked.
 
 This document defines the complete approval state machine, lifecycle events, timeout behavior, and concurrent access handling.
 
@@ -140,7 +140,7 @@ Same DB guard applies.
 ### Telegram approval request message
 
 ```
-⚠️ Aegis Approval Request
+⚠️ AtlasBridge Approval Request
 
 Operation:  write_file
 Path:       /Users/ara/project/src/main.py
@@ -179,7 +179,7 @@ Approval #a1b2c3 — auto-denied (no response in 5 minutes).
 ### On rate limit warning
 
 ```
-⚠️ Aegis Rate Limit Alert
+⚠️ AtlasBridge Rate Limit Alert
 
 Your AI session (claude, PID 9876) has requested 10 approvals
 in the last 60 seconds. This may be unusual activity.
@@ -246,10 +246,10 @@ The approval lifecycle will support hooks:
 
 ```toml
 [hooks]
-on_approval_created = "~/.aegis/hooks/on_approval_created.sh"
-on_approved = "~/.aegis/hooks/on_approved.sh"
-on_denied = "~/.aegis/hooks/on_denied.sh"
-on_expired = "~/.aegis/hooks/on_expired.sh"
+on_approval_created = "~/.atlasbridge/hooks/on_approval_created.sh"
+on_approved = "~/.atlasbridge/hooks/on_approved.sh"
+on_denied = "~/.atlasbridge/hooks/on_denied.sh"
+on_expired = "~/.atlasbridge/hooks/on_expired.sh"
 ```
 
 Hook scripts receive the approval record as a JSON file via `$AEGIS_APPROVAL_JSON`.
@@ -258,7 +258,7 @@ Hook scripts receive the approval record as a JSON file via `$AEGIS_APPROVAL_JSO
 
 ## Stuck Approval Recovery
 
-`aegis doctor` detects stuck approvals:
+`atlasbridge doctor` detects stuck approvals:
 - Status = `PENDING` but `expires_at` in the past
 - Status = `EXECUTING` for longer than the execution timeout (default: 10 minutes)
 

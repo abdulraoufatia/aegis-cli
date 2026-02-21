@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from aegis.channels.telegram.channel import TelegramChannel
-from aegis.core.prompt.models import Confidence, PromptEvent, PromptType
+from atlasbridge.channels.telegram.channel import TelegramChannel
+from atlasbridge.core.prompt.models import Confidence, PromptEvent, PromptType
 
 _VALID_TOKEN = "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi"
 

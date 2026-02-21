@@ -1,20 +1,20 @@
-# CLAUDE.md — Aegis Project Context
+# CLAUDE.md — AtlasBridge Project Context
 
 This file is read by Claude Code automatically. It provides project context for working on this codebase.
 
 ---
 
-## What Aegis is
+## What AtlasBridge is
 
-Aegis is the **universal human-in-the-loop control plane for AI developer agents**.
+AtlasBridge is the **universal human-in-the-loop control plane for AI developer agents**.
 
-Aegis sits between you and your AI coding agent. Whenever your agent pauses and requires human input — approval, confirmation, a choice, or clarification — Aegis forwards that prompt to your phone. You respond from your phone, from a channel such as Telegram or Slack. Aegis relays your decision back to the CLI. Execution resumes.
+AtlasBridge sits between you and your AI coding agent. Whenever your agent pauses and requires human input — approval, confirmation, a choice, or clarification — AtlasBridge forwards that prompt to your phone. You respond from your phone, from a channel such as Telegram or Slack. AtlasBridge relays your decision back to the CLI. Execution resumes.
 
 That's the entire product. It is NOT a security tool, firewall, policy engine, or risk classifier.
 
 ---
 
-## What Aegis is NOT
+## What AtlasBridge is NOT
 
 - Not a security product
 - Not a CLI firewall
@@ -166,7 +166,7 @@ ruff check . && ruff format --check . && pytest tests/ --cov=aegis
 2. **Lint + Type Check** — ruff check, ruff format --check, mypy
 3. **Tests** — pytest on Python 3.11 + 3.12, macOS + ubuntu
 4. **Build** — twine check
-5. **Prompt Lab** — `aegis lab run --all` (gating gate, v0.2.0+)
+5. **Prompt Lab** — `atlasbridge lab run --all` (gating gate, v0.2.0+)
 
 ---
 

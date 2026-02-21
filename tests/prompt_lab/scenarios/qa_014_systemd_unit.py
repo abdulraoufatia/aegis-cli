@@ -9,7 +9,7 @@ from tests.prompt_lab.simulator import (
     ScenarioResults,
     TelegramStub,
 )
-from aegis.os.systemd.service import generate_unit_file
+from atlasbridge.os.systemd.service import generate_unit_file
 
 
 @ScenarioRegistry.register

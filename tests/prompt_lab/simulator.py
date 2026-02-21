@@ -44,8 +44,8 @@ from pathlib import Path
 from collections.abc import Callable
 from typing import Any
 
-from aegis.core.prompt.detector import PromptDetector
-from aegis.core.prompt.models import PromptEvent
+from atlasbridge.core.prompt.detector import PromptDetector
+from atlasbridge.core.prompt.models import PromptEvent
 
 logger = logging.getLogger(__name__)
 

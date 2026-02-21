@@ -7,9 +7,9 @@ prompt patterns using the extended detector classes.
 
 from __future__ import annotations
 
-from aegis.adapters.gemini_cli import GeminiPromptDetector
-from aegis.adapters.openai_cli import OpenAIPromptDetector
-from aegis.core.prompt.models import PromptType
+from atlasbridge.adapters.gemini_cli import GeminiPromptDetector
+from atlasbridge.adapters.openai_cli import OpenAIPromptDetector
+from atlasbridge.core.prompt.models import PromptType
 
 # ---------------------------------------------------------------------------
 # OpenAI (Codex) adapter patterns
@@ -195,22 +195,22 @@ class TestGeminiDetector:
 
 class TestMakeDetector:
     def test_claude_adapter_uses_base_detector(self) -> None:
-        from aegis.adapters.claude_code import ClaudeCodeAdapter
-        from aegis.core.prompt.detector import PromptDetector
+        from atlasbridge.adapters.claude_code import ClaudeCodeAdapter
+        from atlasbridge.core.prompt.detector import PromptDetector
 
         adapter = ClaudeCodeAdapter()
         detector = adapter._make_detector("sess-1")
         assert type(detector) is PromptDetector
 
     def test_openai_adapter_uses_openai_detector(self) -> None:
-        from aegis.adapters.openai_cli import OpenAIAdapter
+        from atlasbridge.adapters.openai_cli import OpenAIAdapter
 
         adapter = OpenAIAdapter()
         detector = adapter._make_detector("sess-2")
         assert isinstance(detector, OpenAIPromptDetector)
 
     def test_gemini_adapter_uses_gemini_detector(self) -> None:
-        from aegis.adapters.gemini_cli import GeminiAdapter
+        from atlasbridge.adapters.gemini_cli import GeminiAdapter
 
         adapter = GeminiAdapter()
         detector = adapter._make_detector("sess-3")

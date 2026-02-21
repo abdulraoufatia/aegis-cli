@@ -1,6 +1,6 @@
-# Contributing to Aegis
+# Contributing to AtlasBridge
 
-Thank you for your interest in contributing to Aegis! This document describes
+Thank you for your interest in contributing to AtlasBridge! This document describes
 how to contribute code, documentation, bug reports, and feature requests.
 
 ## Table of Contents
@@ -26,8 +26,8 @@ By participating, you agree to our [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/<you>/aegis-cli.git`
-3. Add upstream: `git remote add upstream https://github.com/abdulraoufatia/aegis-cli.git`
+2. Clone your fork: `git clone https://github.com/<you>/atlasbridge.git`
+3. Add upstream: `git remote add upstream https://github.com/abdulraoufatia/atlasbridge.git`
 4. Create a feature branch (see [Branching Strategy](#branching-strategy))
 
 ---
@@ -133,7 +133,7 @@ Breaking changes: append `!` after type and add `BREAKING CHANGE:` footer.
 
 Same as commit format:
 ```
-feat(cli): add `aegis doctor --fix` auto-remediation
+feat(cli): add `atlasbridge doctor --fix` auto-remediation
 ```
 
 ---

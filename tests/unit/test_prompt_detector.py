@@ -6,8 +6,8 @@ import time
 
 import pytest
 
-from aegis.core.prompt.detector import ECHO_SUPPRESS_MS, PromptDetector
-from aegis.core.prompt.models import Confidence, PromptType
+from atlasbridge.core.prompt.detector import ECHO_SUPPRESS_MS, PromptDetector
+from atlasbridge.core.prompt.models import Confidence, PromptType
 
 SESSION = "test-session-abc123"
 
