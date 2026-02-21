@@ -7,11 +7,13 @@ Regression coverage for:
 - _check_config returns "warn" (not "fail") when config file is absent
 - _check_bot_token returns "skip" when config file is absent
 - _fix_config creates skeleton and sets permissions when file is missing
+- _check_telegram_reachability pass/warn/skip
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -197,3 +199,62 @@ class TestFixConfig:
         _fix_config(Console(quiet=True))
 
         assert cfg.read_text() == original
+
+
+# ---------------------------------------------------------------------------
+# _check_telegram_reachability
+# ---------------------------------------------------------------------------
+
+
+class TestCheckTelegramReachability:
+    def test_check_telegram_reachability_pass(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Returns pass when verify_telegram_token succeeds."""
+        cfg = tmp_path / "config.toml"
+        cfg.write_text(MINIMAL_TOML)
+        monkeypatch.setenv("ATLASBRIDGE_CONFIG", str(cfg))
+
+        with patch(
+            "atlasbridge.channels.telegram.verify.verify_telegram_token",
+            return_value=(True, "Bot: @testbot"),
+        ):
+            from atlasbridge.cli._doctor import _check_telegram_reachability
+
+            result = _check_telegram_reachability()
+
+        assert result is not None
+        assert result["status"] == "pass"
+        assert "Bot: @testbot" in result["detail"]
+
+    def test_check_telegram_reachability_warn(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Returns warn when verify_telegram_token fails."""
+        cfg = tmp_path / "config.toml"
+        cfg.write_text(MINIMAL_TOML)
+        monkeypatch.setenv("ATLASBRIDGE_CONFIG", str(cfg))
+
+        with patch(
+            "atlasbridge.channels.telegram.verify.verify_telegram_token",
+            return_value=(False, "Unauthorized"),
+        ):
+            from atlasbridge.cli._doctor import _check_telegram_reachability
+
+            result = _check_telegram_reachability()
+
+        assert result is not None
+        assert result["status"] == "warn"
+        assert "Unauthorized" in result["detail"]
+
+    def test_check_telegram_reachability_skip_no_config(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Returns None (skip) when no Telegram is configured."""
+        missing = tmp_path / "config.toml"
+        monkeypatch.setenv("ATLASBRIDGE_CONFIG", str(missing))
+
+        from atlasbridge.cli._doctor import _check_telegram_reachability
+
+        result = _check_telegram_reachability()
+        assert result is None
