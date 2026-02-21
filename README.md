@@ -234,6 +234,79 @@ You can also send `/pause` or `/resume` from Telegram or Slack.
 
 ---
 
+## Using AtlasBridge as an autonomous runtime
+
+### Running an agent under supervision
+
+```bash
+atlasbridge run claude          # wraps Claude Code in a PTY supervisor
+atlasbridge run openai          # OpenAI Codex CLI
+atlasbridge run gemini          # Google Gemini CLI
+atlasbridge run custom -- cmd   # any interactive CLI
+```
+
+When the supervised agent pauses for input, AtlasBridge detects the prompt and forwards it to your phone via Telegram or Slack. The message includes the prompt text, session context, and expiry countdown.
+
+**Telegram:** Yes/No and confirmation prompts show inline buttons (`[Yes]` `[No]`, `[Send Enter]`). Multiple-choice prompts show numbered buttons. Free-text prompts accept any reply message.
+
+**Slack:** Prompts appear as Block Kit messages with buttons for structured responses and a text input for free-form replies.
+
+Your reply is injected into the CLI's stdin. Execution resumes.
+
+### Autopilot operating loop
+
+Autopilot lets policy rules handle prompts automatically instead of routing every one to your phone.
+
+```bash
+atlasbridge autopilot enable              # start the autopilot engine
+atlasbridge autopilot mode off            # all prompts → human (no automation)
+atlasbridge autopilot mode assist         # policy suggests replies; you confirm or override
+atlasbridge autopilot mode full           # policy auto-replies when a rule matches; no-match → human
+atlasbridge autopilot disable             # stop the autopilot engine
+```
+
+- **Off** — every prompt goes to your phone. Use this when you want full control.
+- **Assist** — the policy evaluates each prompt and suggests a reply. You confirm or override from your phone within the TTL window.
+- **Full** — matching prompts are auto-handled. Prompts with no matching rule, low confidence, or an explicit `require_human` action are escalated to your phone.
+
+In all modes, the `defaults.no_match` and `defaults.low_confidence` settings in your policy file control what happens when no rule matches. The safe default is `require_human`.
+
+### Observability
+
+```bash
+atlasbridge autopilot status              # current state, active policy, autonomy mode
+atlasbridge autopilot explain             # last 20 decisions with rule, action, confidence
+atlasbridge autopilot explain -n 50       # last 50 decisions
+atlasbridge autopilot explain --json      # raw JSONL output for scripting
+```
+
+Every autopilot decision is recorded in a hash-chained decision trace (`autopilot_decisions.jsonl` in your config directory). Every prompt lifecycle event is recorded in the SQLite audit log (`atlasbridge.db`).
+
+Run `atlasbridge doctor` to see your config directory path.
+
+### Safe rollout guidance
+
+1. **Start with Off.** Run `atlasbridge autopilot mode off` and operate purely via your phone. Get comfortable with the prompt relay.
+2. **Move to Assist.** Write a minimal policy (see `config/policies/minimal.yaml`) and switch to `atlasbridge autopilot mode assist`. Review suggestions before confirming.
+3. **Graduate to Full.** Once your policy handles common prompts correctly, switch to `atlasbridge autopilot mode full`. Keep `defaults.no_match: require_human` so unexpected prompts still reach you.
+
+Always validate and test your policy before going live:
+
+```bash
+atlasbridge policy validate policy.yaml
+atlasbridge policy test policy.yaml --prompt "Continue? [y/n]" --type yes_no --explain
+```
+
+### Next steps
+
+- [Policy Authoring Guide](docs/policy-authoring.md) — write your first policy, patterns, debugging
+- [Policy DSL Reference](docs/policy-dsl.md) — full schema, match fields, action types
+- [Autopilot Engine](docs/autopilot.md) — engine architecture, decision trace, kill switch
+- [Troubleshooting](docs/troubleshooting.md) — common issues and solutions
+- [Full Documentation Index](docs/README.md) — all docs organized by audience
+
+---
+
 ## How it works
 
 1. `atlasbridge run claude` wraps your AI CLI in a PTY supervisor
