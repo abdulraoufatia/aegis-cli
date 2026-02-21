@@ -1,6 +1,7 @@
 """aegis logs — show recent audit log events."""
 
 from __future__ import annotations
+
 from rich.console import Console
 
 

@@ -1,7 +1,9 @@
 """aegis sessions — list active sessions."""
 
 from __future__ import annotations
+
 import json
+
 from rich.console import Console
 
 

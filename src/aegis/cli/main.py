@@ -20,8 +20,6 @@ Commands:
 
 from __future__ import annotations
 
-import sys
-
 import click
 from rich.console import Console
 
@@ -50,11 +48,19 @@ def cli() -> None:
 @cli.command()
 @click.option("--channel", type=click.Choice(["telegram", "slack"]), default="telegram")
 @click.option("--non-interactive", is_flag=True, default=False, help="Read from env vars only")
-def setup(channel: str, non_interactive: bool) -> None:
+@click.option("--token", default="", help="Telegram bot token (non-interactive mode)")
+@click.option("--users", default="", help="Comma-separated allowed Telegram user IDs")
+def setup(channel: str, non_interactive: bool, token: str, users: str) -> None:
     """Interactive first-time configuration wizard."""
     from aegis.cli._setup import run_setup
 
-    run_setup(channel=channel, non_interactive=non_interactive, console=console)
+    run_setup(
+        channel=channel,
+        non_interactive=non_interactive,
+        console=console,
+        token=token,
+        users=users,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -212,11 +218,10 @@ def adapter() -> None:
 @click.option("--json", "as_json", is_flag=True, default=False)
 def adapter_list(as_json: bool) -> None:
     """Show available tool adapters."""
-    from aegis.adapters.base import AdapterRegistry
-
     # Ensure all adapters are registered by importing them
     import aegis.adapters.claude_code  # noqa: F401
     import aegis.adapters.openai_cli  # noqa: F401
+    from aegis.adapters.base import AdapterRegistry
 
     adapters = AdapterRegistry.list_all()
     if as_json:

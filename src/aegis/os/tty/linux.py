@@ -8,8 +8,8 @@ The module exists as a separate file to allow future Linux-specific tuning
 
 from __future__ import annotations
 
-from aegis.os.tty.macos import MacOSTTY
 from aegis.os.tty.base import PTYConfig
+from aegis.os.tty.macos import MacOSTTY
 
 
 class LinuxTTY(MacOSTTY):

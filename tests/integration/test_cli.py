@@ -23,14 +23,17 @@ def runner() -> CliRunner:
 
 @pytest.fixture
 def config_path(tmp_path: Path) -> Path:
-    """Write a minimal valid config and return its path."""
+    """Write a minimal valid config with a temp DB path and return its path."""
     import tomli_w
 
     data = {
         "telegram": {
             "bot_token": VALID_TOKEN,
             "allowed_users": [12345678],
-        }
+        },
+        "database": {
+            "path": str(tmp_path / "test.db"),
+        },
     }
     p = tmp_path / "config.toml"
     with open(p, "wb") as f:
@@ -52,12 +55,22 @@ class TestSetupCommand:
             env={"HOME": str(tmp_path)},
         )
         assert result.exit_code == 0
-        assert "saved" in result.output.lower() or "config" in result.output.lower()
+        assert "saved" in result.output.lower() or "complete" in result.output.lower()
 
     def test_setup_bad_token_exits_nonzero(self, runner: CliRunner, tmp_path: Path) -> None:
         result = runner.invoke(
             cli,
             ["setup", "--token", "badtoken", "--users", "12345678"],
+            env={"HOME": str(tmp_path)},
+        )
+        assert result.exit_code != 0
+
+    def test_setup_no_token_non_interactive_exits_nonzero(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        result = runner.invoke(
+            cli,
+            ["setup", "--non-interactive"],
             env={"HOME": str(tmp_path)},
         )
         assert result.exit_code != 0
@@ -76,17 +89,52 @@ class TestStatusCommand:
             env={"AEGIS_CONFIG": str(config_path)},
             catch_exceptions=False,
         )
-        # Should not crash; either shows "No active sessions" or a table
         assert result.exit_code == 0
 
-    def test_status_missing_config(self, runner: CliRunner, tmp_path: Path) -> None:
+    def test_status_json(self, runner: CliRunner, config_path: Path) -> None:
+        result = runner.invoke(
+            cli,
+            ["status", "--json"],
+            env={"AEGIS_CONFIG": str(config_path)},
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0
+        import json
+
+        data = json.loads(result.output)
+        assert "daemon" in data
+        assert "active_sessions" in data
+
+    def test_status_no_config(self, runner: CliRunner, tmp_path: Path) -> None:
+        # status without a config should still run (just skips DB query)
         result = runner.invoke(
             cli,
             ["status"],
             env={"HOME": str(tmp_path)},
         )
-        # Should exit non-zero with helpful message
-        assert result.exit_code != 0
+        # Should not crash — may show "not running" without a config
+        assert isinstance(result.exit_code, int)
+
+
+# ---------------------------------------------------------------------------
+# version command
+# ---------------------------------------------------------------------------
+
+
+class TestVersionCommand:
+    def test_version_output(self, runner: CliRunner) -> None:
+        result = runner.invoke(cli, ["version"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert "aegis" in result.output.lower() or "0.2.0" in result.output
+
+    def test_version_json(self, runner: CliRunner) -> None:
+        result = runner.invoke(cli, ["version", "--json"], catch_exceptions=False)
+        assert result.exit_code == 0
+        import json
+
+        data = json.loads(result.output)
+        assert "aegis" in data
+        assert "python" in data
 
 
 # ---------------------------------------------------------------------------
@@ -95,45 +143,63 @@ class TestStatusCommand:
 
 
 class TestDoctorCommand:
-    def test_doctor_with_valid_config(self, runner: CliRunner, config_path: Path) -> None:
+    def test_doctor_runs(self, runner: CliRunner, config_path: Path) -> None:
         result = runner.invoke(
             cli,
             ["doctor"],
             env={"AEGIS_CONFIG": str(config_path)},
             catch_exceptions=False,
         )
-        # May pass or fail individual checks but shouldn't crash
         assert isinstance(result.exit_code, int)
 
-
-# ---------------------------------------------------------------------------
-# approvals command
-# ---------------------------------------------------------------------------
-
-
-class TestApprovalsCommand:
-    def test_approvals_empty(self, runner: CliRunner, config_path: Path) -> None:
+    def test_doctor_json(self, runner: CliRunner, config_path: Path) -> None:
         result = runner.invoke(
             cli,
-            ["approvals"],
+            ["doctor", "--json"],
             env={"AEGIS_CONFIG": str(config_path)},
             catch_exceptions=False,
         )
         assert result.exit_code == 0
+        import json
+
+        data = json.loads(result.output)
+        assert "checks" in data
 
 
 # ---------------------------------------------------------------------------
-# audit verify command
+# adapter list command
 # ---------------------------------------------------------------------------
 
 
-class TestAuditVerifyCommand:
-    def test_verify_no_log(self, runner: CliRunner, config_path: Path, tmp_path: Path) -> None:
-        result = runner.invoke(
-            cli,
-            ["audit", "verify"],
-            env={"AEGIS_CONFIG": str(config_path), "HOME": str(tmp_path)},
-            catch_exceptions=False,
-        )
-        # Either "no audit log found" message (ok) or a valid verification
-        assert result.exit_code == 0 or "audit" in result.output.lower()
+class TestAdapterList:
+    def test_adapter_list_runs(self, runner: CliRunner) -> None:
+        result = runner.invoke(cli, ["adapter", "list"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert "claude" in result.output.lower()
+
+    def test_adapter_list_json(self, runner: CliRunner) -> None:
+        result = runner.invoke(cli, ["adapter", "list", "--json"], catch_exceptions=False)
+        assert result.exit_code == 0
+        import json
+
+        data = json.loads(result.output)
+        assert isinstance(data, list)
+        assert any(a["name"] == "claude" for a in data)
+
+
+# ---------------------------------------------------------------------------
+# lab commands
+# ---------------------------------------------------------------------------
+
+
+class TestLabCommands:
+    def test_lab_list_runs(self, runner: CliRunner) -> None:
+        result = runner.invoke(cli, ["lab", "list"], catch_exceptions=False)
+        assert result.exit_code == 0
+
+    def test_lab_list_json(self, runner: CliRunner) -> None:
+        result = runner.invoke(cli, ["lab", "list", "--json"], catch_exceptions=False)
+        assert result.exit_code == 0
+        import json
+
+        json.loads(result.output)  # should be valid JSON

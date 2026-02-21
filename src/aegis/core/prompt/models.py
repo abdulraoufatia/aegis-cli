@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import secrets
 from dataclasses import dataclass, field
+from datetime import UTC
 from enum import StrEnum
 from typing import Any
 
@@ -68,8 +69,8 @@ class PromptEvent:
         constraints: dict[str, Any] | None = None,
         raw_bytes: bytes = b"",
         ttl_seconds: int = 300,
-    ) -> "PromptEvent":
-        from datetime import datetime, timezone
+    ) -> PromptEvent:
+        from datetime import datetime
 
         return cls(
             prompt_id=secrets.token_hex(12),
@@ -79,7 +80,7 @@ class PromptEvent:
             excerpt=excerpt[:200],  # Max 200 chars to channel
             choices=choices or [],
             constraints=constraints or {},
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             raw_bytes=raw_bytes,
             ttl_seconds=ttl_seconds,
         )

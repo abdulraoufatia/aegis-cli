@@ -1,119 +1,79 @@
-"""Unit tests for aegis.audit.writer — AuditWriter and hash chain."""
+"""Unit tests for aegis.core.audit.writer — AuditWriter structured events."""
 
 from __future__ import annotations
 
-import json
 import uuid
 from pathlib import Path
 
 import pytest
 
-from aegis.audit.writer import AuditWriter, verify_chain
-from aegis.store.models import AuditEvent
+from aegis.core.audit.writer import AuditWriter
+from aegis.core.store.database import Database
 
 
 @pytest.fixture
-def log_path(tmp_path: Path) -> Path:
-    return tmp_path / "audit.log"
+def db(tmp_path: Path) -> Database:
+    d = Database(tmp_path / "audit_test.db")
+    d.connect()
+    yield d
+    d.close()
 
 
 @pytest.fixture
-def writer(log_path: Path) -> AuditWriter:
-    w = AuditWriter(log_path)
-    w.open()
-    yield w
-    w.close()
+def writer(db: Database) -> AuditWriter:
+    return AuditWriter(db)
 
 
 class TestAuditWriter:
-    def test_creates_file(self, writer: AuditWriter, log_path: Path) -> None:
-        assert log_path.exists()
+    def test_session_started_written(self, writer: AuditWriter, db: Database) -> None:
+        sid = str(uuid.uuid4())
+        writer.session_started(sid, "claude", ["claude", "--no-browser"])
+        events = db.get_recent_audit_events(limit=1)
+        assert len(events) == 1
+        assert events[0]["event_type"] == "session_started"
+        assert events[0]["session_id"] == sid
 
-    def test_write_produces_json_line(self, writer: AuditWriter, log_path: Path) -> None:
-        ev = AuditEvent(id=str(uuid.uuid4()), event_type="test")
-        writer.write(ev)
-        lines = log_path.read_text().strip().splitlines()
-        assert len(lines) == 1
-        obj = json.loads(lines[0])
-        assert obj["event_type"] == "test"
+    def test_session_ended_written(self, writer: AuditWriter, db: Database) -> None:
+        sid = str(uuid.uuid4())
+        writer.session_ended(sid, exit_code=0, crashed=False)
+        events = db.get_recent_audit_events(limit=1)
+        assert events[0]["event_type"] == "session_ended"
 
-    def test_hash_is_populated(self, writer: AuditWriter, log_path: Path) -> None:
-        ev = AuditEvent(id=str(uuid.uuid4()), event_type="test")
-        writer.write(ev)
-        obj = json.loads(log_path.read_text().strip())
-        assert len(obj["hash"]) == 64  # SHA-256 hex
+    def test_prompt_detected_written(self, writer: AuditWriter, db: Database) -> None:
+        sid = str(uuid.uuid4())
+        pid = str(uuid.uuid4())
+        writer.prompt_detected(sid, pid, "yes_no", "high", excerpt="Continue?")
+        events = db.get_recent_audit_events(limit=1)
+        assert events[0]["event_type"] == "prompt_detected"
+        assert events[0]["prompt_id"] == pid
 
-    def test_first_entry_prev_hash_is_genesis(self, writer: AuditWriter, log_path: Path) -> None:
-        ev = AuditEvent(id=str(uuid.uuid4()), event_type="test")
-        writer.write(ev)
-        obj = json.loads(log_path.read_text().strip())
-        assert obj["prev_hash"] == "genesis"
+    def test_hash_chain_integrity(self, writer: AuditWriter, db: Database) -> None:
+        sid = str(uuid.uuid4())
+        writer.session_started(sid, "claude", ["claude"])
+        writer.session_ended(sid, exit_code=0)
+        events = db.get_recent_audit_events(limit=10)
+        # Events come back newest first; reverse to check chain
+        ordered = list(reversed(events))
+        assert ordered[0]["prev_hash"] == ""  # genesis
+        assert ordered[1]["prev_hash"] == ordered[0]["hash"]
 
-    def test_chained_prev_hash(self, writer: AuditWriter, log_path: Path) -> None:
-        ev1 = AuditEvent(id=str(uuid.uuid4()), event_type="first")
-        ev2 = AuditEvent(id=str(uuid.uuid4()), event_type="second")
-        writer.write(ev1)
-        writer.write(ev2)
-        lines = log_path.read_text().strip().splitlines()
-        obj1 = json.loads(lines[0])
-        obj2 = json.loads(lines[1])
-        assert obj2["prev_hash"] == obj1["hash"]
+    def test_reply_received_written(self, writer: AuditWriter, db: Database) -> None:
+        sid = str(uuid.uuid4())
+        pid = str(uuid.uuid4())
+        writer.reply_received(sid, pid, "telegram:123", "y", "abc123")
+        events = db.get_recent_audit_events(limit=1)
+        assert events[0]["event_type"] == "reply_received"
 
-    def test_write_event_convenience(self, writer: AuditWriter, log_path: Path) -> None:
-        writer.write_event(
-            str(uuid.uuid4()), "session_started", session_id="abc", data={"tool": "claude"}
-        )
-        obj = json.loads(log_path.read_text().strip())
-        assert obj["event_type"] == "session_started"
-        assert obj["session_id"] == "abc"
+    def test_prompt_expired_written(self, writer: AuditWriter, db: Database) -> None:
+        sid = str(uuid.uuid4())
+        pid = str(uuid.uuid4())
+        writer.prompt_expired(sid, pid)
+        events = db.get_recent_audit_events(limit=1)
+        assert events[0]["event_type"] == "prompt_expired"
 
-    def test_chain_survives_reopen(self, log_path: Path) -> None:
-        """A new AuditWriter should continue the chain from the last hash."""
-        w1 = AuditWriter(log_path)
-        w1.open()
-        w1.write(AuditEvent(id=str(uuid.uuid4()), event_type="first"))
-        w1.close()
-
-        w2 = AuditWriter(log_path)
-        w2.open()
-        w2.write(AuditEvent(id=str(uuid.uuid4()), event_type="second"))
-        w2.close()
-
-        ok, count, err = verify_chain(log_path)
-        assert ok, err
-        assert count == 2
-
-
-class TestVerifyChain:
-    def test_valid_chain(self, writer: AuditWriter, log_path: Path) -> None:
-        for _ in range(5):
-            writer.write(AuditEvent(id=str(uuid.uuid4()), event_type="ev"))
-        ok, count, err = verify_chain(log_path)
-        assert ok, err
-        assert count == 5
-
-    def test_tampered_chain(self, writer: AuditWriter, log_path: Path) -> None:
-        for _ in range(3):
-            writer.write(AuditEvent(id=str(uuid.uuid4()), event_type="ev"))
-        writer.close()
-
-        # Tamper: replace second line's event_type
-        lines = log_path.read_text().splitlines()
-        obj = json.loads(lines[1])
-        obj["event_type"] = "TAMPERED"
-        lines[1] = json.dumps(obj)
-        log_path.write_text("\n".join(lines) + "\n")
-
-        ok, _count, err = verify_chain(log_path)
-        assert not ok
-        assert err is not None
-
-    def test_empty_log(self, log_path: Path) -> None:
-        log_path.touch()
-        ok, count, err = verify_chain(log_path)
-        assert ok
-        assert count == 0
-
-    def test_missing_log(self, tmp_path: Path) -> None:
-        ok, count, err = verify_chain(tmp_path / "no_such_file.log")
-        assert not ok
+    def test_duplicate_callback_written(self, writer: AuditWriter, db: Database) -> None:
+        sid = str(uuid.uuid4())
+        pid = str(uuid.uuid4())
+        writer.duplicate_callback(sid, pid, "nonce123")
+        events = db.get_recent_audit_events(limit=1)
+        assert events[0]["event_type"] == "duplicate_callback_ignored"

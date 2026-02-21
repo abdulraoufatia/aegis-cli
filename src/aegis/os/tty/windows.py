@@ -19,7 +19,7 @@ Feature flag: aegis.config.experimental.conpty_backend
 from __future__ import annotations
 
 import sys
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from aegis.os.tty.base import BaseTTY, PTYConfig
 

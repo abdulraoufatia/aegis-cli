@@ -23,7 +23,7 @@ from __future__ import annotations
 import re
 import time
 from dataclasses import dataclass, field
-from typing import Pattern
+from re import Pattern
 
 from aegis.core.prompt.models import Confidence, PromptEvent, PromptType
 

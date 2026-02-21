@@ -15,7 +15,7 @@ Invariants:
 from __future__ import annotations
 
 import logging
-from typing import Iterator
+from collections.abc import Iterator
 
 from aegis.core.session.models import Session, SessionStatus
 
@@ -53,7 +53,7 @@ class SessionManager:
         try:
             return self._sessions[session_id]
         except KeyError:
-            raise SessionNotFoundError(f"Session not found: {session_id!r}")
+            raise SessionNotFoundError(f"Session not found: {session_id!r}") from None
 
     def get_or_none(self, session_id: str) -> Session | None:
         return self._sessions.get(session_id)
