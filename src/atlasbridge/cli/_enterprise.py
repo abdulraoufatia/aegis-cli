@@ -11,7 +11,7 @@ console = Console()
 @click.command("edition")
 @click.option("--json", "as_json", is_flag=True, default=False)
 def edition_cmd(as_json):
-    """Show the current AtlasBridge edition."""
+    """[EXPERIMENTAL] Show the current AtlasBridge edition."""
     from atlasbridge.enterprise import detect_edition
 
     ed = detect_edition()
@@ -26,7 +26,7 @@ def edition_cmd(as_json):
 @click.command("features")
 @click.option("--json", "as_json", is_flag=True, default=False)
 def features_cmd(as_json):
-    """Show all feature flags and their availability."""
+    """[EXPERIMENTAL] Show all feature flags and their availability."""
     from atlasbridge.enterprise import list_features
 
     features = list_features()
@@ -44,13 +44,13 @@ def features_cmd(as_json):
 
 @click.group("cloud")
 def cloud_group():
-    """Cloud governance integration (Phase B)."""
+    """[EXPERIMENTAL] Cloud governance integration (Phase B)."""
 
 
 @cloud_group.command("status")
 @click.option("--json", "as_json", is_flag=True, default=False)
 def cloud_status(as_json):
-    """Show cloud integration status."""
+    """[EXPERIMENTAL] Show cloud integration status."""
     from atlasbridge.cloud import is_cloud_enabled
 
     config = _load_cloud_config()
