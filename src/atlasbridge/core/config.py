@@ -234,7 +234,19 @@ class AtlasBridgeConfig(BaseModel):
 
 
 # Backwards-compat alias — remove in v1.0
-AegisConfig = AtlasBridgeConfig
+import warnings as _warnings
+
+
+def __getattr__(name: str):  # noqa: N807
+    if name == "AegisConfig":
+        _warnings.warn(
+            "AegisConfig is deprecated, use AtlasBridgeConfig instead. "
+            "Will be removed in v1.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return AtlasBridgeConfig
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # ---------------------------------------------------------------------------

@@ -28,4 +28,16 @@ class SessionError(AtlasBridgeError):
 
 
 # Backwards-compat alias — remove in v1.0
-AegisError = AtlasBridgeError
+import warnings as _warnings
+
+
+def __getattr__(name: str):  # noqa: N807
+    if name == "AegisError":
+        _warnings.warn(
+            "AegisError is deprecated, use AtlasBridgeError instead. "
+            "Will be removed in v1.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return AtlasBridgeError
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
