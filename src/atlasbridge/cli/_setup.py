@@ -36,21 +36,33 @@ def _validate_slack_users(users_str: str) -> list[str] | None:
     return None
 
 
+def _env(*names: str) -> str:
+    """Return the first non-empty env var from *names*."""
+    for name in names:
+        v = os.environ.get(name, "")
+        if v:
+            return v
+    return ""
+
+
 def run_setup(
     channel: str,
     non_interactive: bool,
     console: Console,
     token: str = "",  # nosec B107 — empty default, not a hardcoded credential
     users: str = "",
+    from_env: bool = False,
 ) -> None:
-    """Run the Aegis setup wizard."""
+    """Run the AtlasBridge setup wizard."""
     from atlasbridge.core.config import atlasbridge_dir, save_config
     from atlasbridge.core.exceptions import ConfigError
 
     console.print("[bold]AtlasBridge Setup[/bold]")
-    console.print(f"\nConfiguring channel: [cyan]{channel}[/cyan]\n")
 
-    if channel == "telegram":
+    if from_env:
+        config_data = _setup_from_env(console)
+    elif channel == "telegram":
+        console.print(f"\nConfiguring channel: [cyan]{channel}[/cyan]\n")
         config_data = _setup_telegram(
             console=console,
             non_interactive=non_interactive,
@@ -58,6 +70,7 @@ def run_setup(
             users=users,
         )
     elif channel == "slack":
+        console.print(f"\nConfiguring channel: [cyan]{channel}[/cyan]\n")
         config_data = _setup_slack(
             console=console,
             non_interactive=non_interactive,
@@ -98,7 +111,7 @@ def _setup_telegram(
 ) -> dict:
     """Collect Telegram credentials and return config dict."""
     if not token:
-        token = os.environ.get("AEGIS_TELEGRAM_BOT_TOKEN", "")
+        token = _env("ATLASBRIDGE_TELEGRAM_BOT_TOKEN", "AEGIS_TELEGRAM_BOT_TOKEN")
 
     if not token and not non_interactive:
         console.print("Get your bot token from @BotFather on Telegram.\n")
@@ -113,7 +126,7 @@ def _setup_telegram(
 
     if not token:
         console.print(
-            "[red]No bot token provided. Set AEGIS_TELEGRAM_BOT_TOKEN or run interactively.[/red]"
+            "[red]No bot token provided. Set ATLASBRIDGE_TELEGRAM_BOT_TOKEN or run interactively.[/red]"
         )
         sys.exit(1)
 
@@ -123,7 +136,7 @@ def _setup_telegram(
         sys.exit(1)
 
     if not users:
-        users = os.environ.get("AEGIS_TELEGRAM_ALLOWED_USERS", "")
+        users = _env("ATLASBRIDGE_TELEGRAM_ALLOWED_USERS", "AEGIS_TELEGRAM_ALLOWED_USERS")
 
     if not users and not non_interactive:
         console.print("\nYour Telegram user ID (find it by messaging @userinfobot).\n")
@@ -137,7 +150,7 @@ def _setup_telegram(
     if not users:
         console.print(
             "[red]No user IDs provided. "
-            "Set AEGIS_TELEGRAM_ALLOWED_USERS or run interactively.[/red]"
+            "Set ATLASBRIDGE_TELEGRAM_ALLOWED_USERS or run interactively.[/red]"
         )
         sys.exit(1)
 
@@ -167,7 +180,7 @@ def _setup_slack(
 ) -> dict:
     """Collect Slack credentials and return config dict."""
     # Bot token (xoxb-*)
-    bot_token = token or os.environ.get("AEGIS_SLACK_BOT_TOKEN", "")
+    bot_token = token or _env("ATLASBRIDGE_SLACK_BOT_TOKEN", "AEGIS_SLACK_BOT_TOKEN")
 
     if not bot_token and not non_interactive:
         console.print(
@@ -182,7 +195,7 @@ def _setup_slack(
 
     if not bot_token:
         console.print(
-            "[red]No bot token provided. Set AEGIS_SLACK_BOT_TOKEN or run interactively.[/red]"
+            "[red]No bot token provided. Set ATLASBRIDGE_SLACK_BOT_TOKEN or run interactively.[/red]"
         )
         sys.exit(1)
 
@@ -191,7 +204,7 @@ def _setup_slack(
         sys.exit(1)
 
     # App-level token (xapp-*) for Socket Mode
-    app_token = os.environ.get("AEGIS_SLACK_APP_TOKEN", "")
+    app_token = _env("ATLASBRIDGE_SLACK_APP_TOKEN", "AEGIS_SLACK_APP_TOKEN")
 
     if not app_token and not non_interactive:
         console.print(
@@ -206,7 +219,7 @@ def _setup_slack(
 
     if not app_token:
         console.print(
-            "[red]No app token provided. Set AEGIS_SLACK_APP_TOKEN or run interactively.[/red]"
+            "[red]No app token provided. Set ATLASBRIDGE_SLACK_APP_TOKEN or run interactively.[/red]"
         )
         sys.exit(1)
 
@@ -215,7 +228,7 @@ def _setup_slack(
         sys.exit(1)
 
     # Allowed Slack user IDs (U1234567890, ...)
-    allowed_raw = users or os.environ.get("AEGIS_SLACK_ALLOWED_USERS", "")
+    allowed_raw = users or _env("ATLASBRIDGE_SLACK_ALLOWED_USERS", "AEGIS_SLACK_ALLOWED_USERS")
 
     if not allowed_raw and not non_interactive:
         console.print(
@@ -234,7 +247,7 @@ def _setup_slack(
 
     if not allowed_raw:
         console.print(
-            "[red]No user IDs provided. Set AEGIS_SLACK_ALLOWED_USERS or run interactively.[/red]"
+            "[red]No user IDs provided. Set ATLASBRIDGE_SLACK_ALLOWED_USERS or run interactively.[/red]"
         )
         sys.exit(1)
 
@@ -250,6 +263,77 @@ def _setup_slack(
             "allowed_users": parsed_users,
         }
     }
+
+
+# ---------------------------------------------------------------------------
+# Environment variable bootstrap
+# ---------------------------------------------------------------------------
+
+
+def _setup_from_env(console: Console) -> dict:
+    """Build config dict entirely from ATLASBRIDGE_* (or AEGIS_*) env vars."""
+    config_data: dict = {}
+
+    # Telegram
+    tg_token = _env("ATLASBRIDGE_TELEGRAM_BOT_TOKEN", "AEGIS_TELEGRAM_BOT_TOKEN")
+    tg_users = _env("ATLASBRIDGE_TELEGRAM_ALLOWED_USERS", "AEGIS_TELEGRAM_ALLOWED_USERS")
+    if tg_token and tg_users:
+        if not _validate_telegram_token(tg_token):
+            console.print("[red]Invalid ATLASBRIDGE_TELEGRAM_BOT_TOKEN format.[/red]")
+            sys.exit(1)
+        parsed_users = _validate_telegram_users(tg_users)
+        if not parsed_users:
+            console.print(f"[red]Invalid ATLASBRIDGE_TELEGRAM_ALLOWED_USERS: {tg_users!r}[/red]")
+            sys.exit(1)
+        config_data["telegram"] = {"bot_token": tg_token, "allowed_users": parsed_users}
+
+    # Slack
+    slack_bot = _env("ATLASBRIDGE_SLACK_BOT_TOKEN", "AEGIS_SLACK_BOT_TOKEN")
+    slack_app = _env("ATLASBRIDGE_SLACK_APP_TOKEN", "AEGIS_SLACK_APP_TOKEN")
+    slack_users = _env("ATLASBRIDGE_SLACK_ALLOWED_USERS", "AEGIS_SLACK_ALLOWED_USERS")
+    if slack_bot and slack_app and slack_users:
+        if not _SLACK_BOT_TOKEN_RE.fullmatch(slack_bot):
+            console.print("[red]Invalid ATLASBRIDGE_SLACK_BOT_TOKEN format.[/red]")
+            sys.exit(1)
+        if not _SLACK_APP_TOKEN_RE.fullmatch(slack_app):
+            console.print("[red]Invalid ATLASBRIDGE_SLACK_APP_TOKEN format.[/red]")
+            sys.exit(1)
+        parsed_slack = _validate_slack_users(slack_users)
+        if not parsed_slack:
+            console.print(f"[red]Invalid ATLASBRIDGE_SLACK_ALLOWED_USERS: {slack_users!r}[/red]")
+            sys.exit(1)
+        config_data["slack"] = {
+            "bot_token": slack_bot,
+            "app_token": slack_app,
+            "allowed_users": parsed_slack,
+        }
+
+    if not config_data:
+        console.print("[red]No channel environment variables found.[/red]")
+        console.print("Set ATLASBRIDGE_TELEGRAM_BOT_TOKEN + ATLASBRIDGE_TELEGRAM_ALLOWED_USERS")
+        console.print(
+            "  or ATLASBRIDGE_SLACK_BOT_TOKEN + ATLASBRIDGE_SLACK_APP_TOKEN"
+            " + ATLASBRIDGE_SLACK_ALLOWED_USERS"
+        )
+        sys.exit(1)
+
+    # Optional overrides
+    if level := _env("ATLASBRIDGE_LOG_LEVEL", "AEGIS_LOG_LEVEL"):
+        config_data.setdefault("logging", {})["level"] = level
+    if db := _env("ATLASBRIDGE_DB_PATH", "AEGIS_DB_PATH"):
+        config_data.setdefault("database", {})["path"] = db
+    if timeout := _env("ATLASBRIDGE_APPROVAL_TIMEOUT_SECONDS", "AEGIS_APPROVAL_TIMEOUT_SECONDS"):
+        config_data.setdefault("prompts", {})["timeout_seconds"] = int(timeout)
+
+    console.print("\nBuilding config from environment variables...")
+    channels = []
+    if "telegram" in config_data:
+        channels.append("Telegram")
+    if "slack" in config_data:
+        channels.append("Slack")
+    console.print(f"Detected channel(s): [cyan]{', '.join(channels)}[/cyan]")
+
+    return config_data
 
 
 # ---------------------------------------------------------------------------
