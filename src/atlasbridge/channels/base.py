@@ -89,6 +89,9 @@ class BaseChannel(ABC):
     30 s, giving the backend time to recover before retrying.
     """
 
+    #: Interface version (semver). Breaking changes require a major bump.
+    INTERFACE_VERSION: str = "1.0.0"
+
     #: Short identifier used in config and logs (e.g. "telegram")
     channel_name: str = ""
 
