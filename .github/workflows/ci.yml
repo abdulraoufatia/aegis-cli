@@ -82,6 +82,36 @@ jobs:
       - name: atlasbridge trace --help
         run: atlasbridge trace --help
 
+      - name: atlasbridge policy --help
+        run: atlasbridge policy --help
+
+      - name: atlasbridge autopilot --help
+        run: atlasbridge autopilot --help
+
+      - name: atlasbridge edition --help
+        run: atlasbridge edition --help
+
+      - name: atlasbridge features --help
+        run: atlasbridge features --help
+
+      - name: atlasbridge cloud --help
+        run: atlasbridge cloud --help
+
+      - name: atlasbridge lab --help
+        run: atlasbridge lab --help
+
+      - name: atlasbridge db --help
+        run: atlasbridge db --help
+
+      - name: atlasbridge adapters --help
+        run: atlasbridge adapters --help
+
+      - name: atlasbridge pause --help
+        run: atlasbridge pause --help
+
+      - name: atlasbridge resume --help
+        run: atlasbridge resume --help
+
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
