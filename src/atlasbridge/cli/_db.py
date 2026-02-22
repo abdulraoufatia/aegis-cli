@@ -172,14 +172,24 @@ def db_migrate(dry_run: bool, as_json: bool) -> None:
     help="Archive events older than this many days.",
 )
 @click.option(
+    "--max-rows",
+    default=0,
+    show_default=True,
+    help="Keep at most this many events; archive the rest (0 = no limit).",
+)
+@click.option(
     "--dry-run",
     is_flag=True,
     default=False,
     help="Show what would be archived without making changes.",
 )
 @click.option("--json", "as_json", is_flag=True, default=False)
-def db_archive(days: int, dry_run: bool, as_json: bool) -> None:
-    """Archive old audit events to a separate database file."""
+def db_archive(days: int, max_rows: int, dry_run: bool, as_json: bool) -> None:
+    """Archive old audit events to a separate database file.
+
+    Supports age-based (--days) and size-based (--max-rows) thresholds.
+    When both are specified, events matching EITHER criterion are archived.
+    """
     from datetime import UTC, datetime, timedelta
 
     from atlasbridge.core.config import atlasbridge_dir
@@ -214,28 +224,30 @@ def db_archive(days: int, dry_run: bool, as_json: bool) -> None:
                 (cutoff_str,),
             ).fetchone()
             conn.close()
-            archivable = row["cnt"] if row else 0
+            age_archivable = row["cnt"] if row else 0
+            size_archivable = max(0, total_events - max_rows) if max_rows > 0 else 0
+            archivable = max(age_archivable, size_archivable)
 
             if as_json:
                 import json as _json
 
-                click.echo(
-                    _json.dumps(
-                        {
-                            "total_events": total_events,
-                            "archivable": archivable,
-                            "remaining": total_events - archivable,
-                            "cutoff_date": cutoff_str,
-                            "days": days,
-                            "dry_run": True,
-                        },
-                        indent=2,
-                    )
-                )
+                result: dict = {
+                    "total_events": total_events,
+                    "archivable": archivable,
+                    "remaining": total_events - archivable,
+                    "cutoff_date": cutoff_str,
+                    "days": days,
+                    "dry_run": True,
+                }
+                if max_rows > 0:
+                    result["max_rows"] = max_rows
+                click.echo(_json.dumps(result, indent=2))
             else:
                 console.print("[bold]Audit Log Archive Preview[/bold]")
                 console.print(f"Total events:     {total_events}")
                 console.print(f"Archivable:       {archivable} (older than {days} days)")
+                if max_rows > 0:
+                    console.print(f"Max rows limit:   {max_rows}")
                 console.print(f"Would remain:     {total_events - archivable}")
                 console.print(f"Cutoff:           {cutoff_str[:10]}")
                 if archivable == 0:
@@ -261,28 +273,34 @@ def db_archive(days: int, dry_run: bool, as_json: bool) -> None:
             overflow.unlink()
 
         archive_path = archive_base.with_suffix(".1.db")
+
+        # Archive by age first
         archived = db.archive_audit_events(archive_path, cutoff_str)
+
+        # Then archive by row count if threshold exceeded
+        if max_rows > 0:
+            archived += db.archive_audit_events_by_count(archive_path, max_rows)
+
+        remaining = db.count_audit_events()
 
         if as_json:
             import json as _json
 
-            click.echo(
-                _json.dumps(
-                    {
-                        "archived": archived,
-                        "remaining": total_events - archived,
-                        "archive_path": str(archive_path),
-                        "cutoff_date": cutoff_str,
-                        "days": days,
-                    },
-                    indent=2,
-                )
-            )
+            result_data: dict = {
+                "archived": archived,
+                "remaining": remaining,
+                "archive_path": str(archive_path),
+                "cutoff_date": cutoff_str,
+                "days": days,
+            }
+            if max_rows > 0:
+                result_data["max_rows"] = max_rows
+            click.echo(_json.dumps(result_data, indent=2))
         else:
             if archived == 0:
                 console.print("[green]Nothing to archive.[/green] All events are recent.")
             else:
                 console.print(f"[green]Archived {archived} events[/green] to {archive_path.name}")
-                console.print(f"Remaining events: {total_events - archived}")
+                console.print(f"Remaining events: {remaining}")
     finally:
         db.close()
