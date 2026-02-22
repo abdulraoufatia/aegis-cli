@@ -33,6 +33,9 @@ class BaseAdapter(ABC):
     the Session model, not the adapter.
     """
 
+    #: Interface version (semver). Breaking changes require a major bump.
+    INTERFACE_VERSION: str = "1.0.0"
+
     #: Short identifier used in config files and CLI output (e.g. "claude")
     tool_name: str = ""
 

@@ -104,3 +104,28 @@ def test_registry_methods_exist():
     assert callable(getattr(AdapterRegistry, "register", None))
     assert callable(getattr(AdapterRegistry, "get", None))
     assert callable(getattr(AdapterRegistry, "list_all", None))
+
+
+def test_interface_version_accessible():
+    """BaseAdapter.INTERFACE_VERSION must be a semver string."""
+    import re
+
+    version = BaseAdapter.INTERFACE_VERSION
+    assert isinstance(version, str), f"INTERFACE_VERSION is not a string: {type(version)}"
+    assert re.match(r"^\d+\.\d+\.\d+$", version), (
+        f"INTERFACE_VERSION is not valid semver: {version!r}"
+    )
+
+
+def test_all_adapters_implement_abstract_methods():
+    """Every registered adapter must implement all BaseAdapter abstract methods."""
+    import atlasbridge.adapters.claude_code  # noqa: F401
+    import atlasbridge.adapters.gemini_cli  # noqa: F401
+    import atlasbridge.adapters.openai_cli  # noqa: F401
+
+    for name, adapter_cls in AdapterRegistry.list_all().items():
+        remaining = _get_abstract_methods(adapter_cls)
+        assert not remaining, (
+            f"Adapter {name!r} ({adapter_cls.__name__}) has unimplemented "
+            f"abstract methods: {sorted(remaining)}"
+        )
