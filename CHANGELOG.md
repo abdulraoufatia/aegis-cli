@@ -9,8 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.9.0] — 2026-02-21
+
 ### Added
 
+- 10 new contract stability safety tests (155 safety tests total across 18 files):
+  - `test_adapter_api_stability.py` — BaseAdapter ABC freeze (6 tests)
+  - `test_channel_api_stability.py` — BaseChannel ABC freeze (5 tests)
+  - `test_policy_schema_stability.py` — Policy DSL schema freeze (13 tests)
+  - `test_audit_schema_stability.py` — audit log schema freeze (4 tests)
+  - `test_config_schema_stability.py` — config schema freeze (5 tests)
+  - `test_safe_defaults_immutable.py` — safety-critical defaults freeze (8 tests)
+  - `test_cli_surface_stability.py` — CLI command set freeze (3 tests)
+  - `test_release_artifacts.py` — release artifact validation (8 tests)
+  - `test_no_injection_without_policy.py` — injection path safety (4 tests)
+  - `test_version_sync.py` — version string sync guard (2 tests)
+- `docs/contract-surfaces.md` — formal spec of all 8 contract surfaces
+- `docs/api-stability-policy.md` — stability levels, deprecation rules, breaking change policy
+- CI smoke test expanded to all 25 frozen top-level CLI commands
 - `BaseAdapter.get_detector()` public method — daemon no longer accesses private `_detectors`
 - `ChannelCircuitBreaker` — 3-failure threshold with 30s auto-recovery
 - `db migrate` CLI command with `--dry-run` for preview
@@ -23,9 +41,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Enterprise CLI commands (`edition`, `features`, `cloud`, `cloud status`) marked `[EXPERIMENTAL]`
+- `AegisConfig` and `AegisError` aliases now emit `DeprecationWarning` (removal in v1.0)
+- Synced version strings between `__init__.py` and `pyproject.toml`
 - `update_session()` enforces column allowlist — rejects unknown column names
 - Reduced mypy `ignore_errors = true` blanket from 13 to 9 modules
-- Raised test coverage `fail_under` from 50% to 65%
+- Raised test coverage `fail_under` from 65% to 70%
 
 ### Fixed
 
