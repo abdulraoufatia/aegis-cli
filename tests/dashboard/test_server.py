@@ -236,3 +236,64 @@ class TestNoDataState:
         client = TestClient(app)
         response = client.get("/traces")
         assert response.status_code == 200
+
+
+class TestBannerOnAllPages:
+    """READ-ONLY banner must appear on every page."""
+
+    PAGES = ["/", "/integrity", "/traces", "/traces/0", "/sessions/sess-001"]
+
+    def test_banner_present(self, client):
+        for page in self.PAGES:
+            response = client.get(page)
+            assert response.status_code == 200
+            assert "READ-ONLY GOVERNANCE VIEW" in response.text, f"Banner missing on {page}"
+
+
+class TestNavLinksOnAllPages:
+    """Navigation links must appear on every page."""
+
+    PAGES = ["/", "/integrity", "/traces", "/traces/0", "/sessions/sess-001"]
+
+    def test_nav_links(self, client):
+        for page in self.PAGES:
+            response = client.get(page)
+            assert 'href="/"' in response.text, f"Home link missing on {page}"
+            assert 'href="/traces"' in response.text, f"Traces link missing on {page}"
+            assert 'href="/integrity"' in response.text, f"Integrity link missing on {page}"
+
+
+class TestNoRawTokensInOutput:
+    """No raw tokens or secrets should appear in rendered HTML or JSON."""
+
+    def test_no_tokens_in_home(self, client):
+        response = client.get("/")
+        assert "sk-" not in response.text
+        assert "xoxb-" not in response.text
+        assert "ghp_" not in response.text
+
+    def test_no_tokens_in_api_sessions(self, client):
+        response = client.get("/api/sessions")
+        text = response.text
+        assert "sk-" not in text
+        assert "xoxb-" not in text
+
+    def test_no_tokens_in_api_stats(self, client):
+        response = client.get("/api/stats")
+        text = response.text
+        assert "sk-" not in text
+        assert "xoxb-" not in text
+
+
+class TestEmptyStatesWithFilters:
+    """Empty state messages should work when filters yield no results."""
+
+    def test_home_empty_with_filter(self, client):
+        response = client.get("/?status=nonexistent")
+        assert response.status_code == 200
+        assert "No sessions found" in response.text
+
+    def test_traces_empty_with_filter(self, client):
+        response = client.get("/traces?action_type=nonexistent_action")
+        assert response.status_code == 200
+        assert "No trace entries found" in response.text
