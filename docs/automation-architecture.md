@@ -165,19 +165,33 @@ To disable all automation immediately: set the `DISABLE_PROJECT_AUTOMATION` repo
 
 ## Starting and Managing Sprints
 
+### Claude Code sprint commands
+
+When working with Claude Code, say **"start sprint"** or **"continue sprint"** to trigger the full sprint workflow. Claude will execute the following steps in order:
+
+1. **Dry-run preview** — `python scripts/automation/sprint_rotate.py --rotate --dry-run --max-items 10`
+2. **Review** — show which items will be pulled in, confirm priority ordering
+3. **Execute rotation** — `python scripts/automation/sprint_rotate.py --rotate --max-items 10`
+4. **Merge open PRs** — for each open PR:
+   a. Check all CI checks are green
+   b. Verify no merge conflicts with main
+   c. If checks fail, fix the issue before proceeding
+   d. Squash-merge the PR
+   e. Wait for main branch CI to pass before merging the next PR
+5. **Final status** — `python scripts/automation/sprint_rotate.py --check`
+
+This ensures PRs are merged sequentially, each validated against the latest main, so they never break each other.
+
 ### Starting Sprint 1 (first time)
 
-No sprint exists initially. All 29 issues start in Backlog with no Sprint value. To kick off S1:
+No sprint exists initially. All issues start in Backlog with no Sprint value. To kick off S1:
 
 ```bash
-# Preview what will be pulled in
-python scripts/automation/sprint_rotate.py --rotate --dry-run
+# Preview what will be pulled in (always do this first)
+python scripts/automation/sprint_rotate.py --rotate --dry-run --max-items 10
 
-# Execute — pulls top 8 Backlog items (by priority) into S1
-python scripts/automation/sprint_rotate.py --rotate
-
-# Pull more or fewer items
-python scripts/automation/sprint_rotate.py --rotate --max-items 5
+# Execute — pulls top 10 Backlog items (by priority) into S1
+python scripts/automation/sprint_rotate.py --rotate --max-items 10
 ```
 
 This sets Sprint = `S1` and Status = `Planned` on the selected items.
@@ -197,8 +211,8 @@ Output:
 Sprint Status:
   Current: S1
   Status:  in_progress
-  Items:   3/8 done
-  Backlog: 21 items available
+  Items:   3/10 done
+  Backlog: 19 items available
 ```
 
 ### When a sprint completes
@@ -207,15 +221,30 @@ When all items in the current sprint are Done, the next sprint starts automatica
 
 - **On PR merge**: `pr-status-sync` detects the last item is Done and triggers `sprint-rotation`
 - **Weekly cron**: Every Monday at 9am UTC, `sprint-rotation` checks and rotates if complete
-- **Manual**: Run `python scripts/automation/sprint_rotate.py --rotate`
+- **Manual**: Say "continue sprint" to Claude Code, or run `python scripts/automation/sprint_rotate.py --rotate --max-items 10`
 
 The auto-chain pulls the next batch of items from Backlog into `S(N+1)`.
+
+### Merging PRs safely
+
+When multiple PRs are open, merge them one at a time:
+
+1. Check all CI checks are green (`gh pr checks <N>`)
+2. Verify no merge conflicts
+3. Squash-merge (`gh pr merge <N> --squash`)
+4. Wait for main branch CI to pass
+5. Repeat for the next PR
+
+Never merge multiple PRs simultaneously. Sequential merging ensures each PR is validated against the latest main.
 
 ### Manual sprint management
 
 ```bash
+# Preview rotation without executing
+python scripts/automation/sprint_rotate.py --rotate --dry-run --max-items 10
+
 # Force-start next sprint even if current isn't complete
-python scripts/automation/sprint_rotate.py --rotate
+python scripts/automation/sprint_rotate.py --rotate --max-items 10
 
 # Trigger rotation from GitHub Actions UI
 # Go to Actions → Sprint Rotation → Run workflow → set dry_run=false
