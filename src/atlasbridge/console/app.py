@@ -281,9 +281,7 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
     # Health banner + data paths
     # ------------------------------------------------------------------
 
-    def _update_health_banner(
-        self, health: SystemHealth, *, error: str | None = None
-    ) -> None:
+    def _update_health_banner(self, health: SystemHealth, *, error: str | None = None) -> None:
         """Update the health state line below the safety banner."""
         try:
             label = self.query_one("#health-state", Label)
@@ -292,9 +290,7 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
             else:
                 tag = health.value.upper()
                 color = {"GREEN": "green", "YELLOW": "yellow", "RED": "red"}[tag]
-                text = {"GREEN": "All Healthy", "YELLOW": "Degraded", "RED": "Critical"}[
-                    tag
-                ]
+                text = {"GREEN": "All Healthy", "YELLOW": "Degraded", "RED": "Critical"}[tag]
                 parts = [f"[{color}][{tag}] {text}[/{color}]"]
                 if self._last_poll_time:
                     parts.append(f"Last check: {self._last_poll_time}")

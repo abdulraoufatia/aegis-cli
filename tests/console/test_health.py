@@ -4,11 +4,8 @@ from __future__ import annotations
 
 import inspect
 
-import pytest
-
 from atlasbridge.console.app import ConsoleApp, ConsoleScreen
 from atlasbridge.console.supervisor import ProcessInfo, SystemHealth, compute_health
-
 
 # ---------------------------------------------------------------------------
 # SystemHealth enum
