@@ -244,6 +244,15 @@ def create_app(
         total = repo.count_sessions(status=status, tool=tool, q=q)
         return JSONResponse({"sessions": sessions, "total": total})
 
+    @app.get("/api/sessions/{session_id}/export")
+    async def api_session_export(session_id: str):
+        from atlasbridge.dashboard.export import export_session_json
+
+        bundle = export_session_json(repo, session_id)
+        if bundle is None:
+            return JSONResponse({"error": "Session not found"}, status_code=404)
+        return JSONResponse(bundle)
+
     @app.post("/api/integrity/verify")
     async def api_verify_integrity():
         now = time.monotonic()

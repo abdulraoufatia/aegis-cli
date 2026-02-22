@@ -90,3 +90,80 @@ def dashboard_status(port: int) -> None:
             click.echo(f"Dashboard is not running on port {port}")
     finally:
         sock.close()
+
+
+@dashboard_group.command("export")
+@click.option(
+    "--session",
+    "session_id",
+    required=True,
+    help="Session ID to export",
+)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["json", "html"]),
+    default="json",
+    show_default=True,
+    help="Export format",
+)
+@click.option(
+    "--output",
+    "output_path",
+    default=None,
+    help="Output file path (default: stdout for JSON, session_<id>.html for HTML)",
+)
+def dashboard_export(session_id: str, fmt: str, output_path: str | None) -> None:
+    """Export a session as JSON or self-contained HTML."""
+    from pathlib import Path
+
+    from atlasbridge.dashboard.repo import DashboardRepo
+
+    # Resolve paths
+    from atlasbridge.core.config import atlasbridge_dir
+    from atlasbridge.core.constants import DB_FILENAME
+
+    config_dir = atlasbridge_dir()
+    db_path = config_dir / DB_FILENAME
+
+    # Trace path
+    from atlasbridge.core.autopilot.trace import TRACE_FILENAME
+
+    trace_path = config_dir / TRACE_FILENAME
+
+    repo = DashboardRepo(db_path, trace_path)
+    repo.connect()
+
+    try:
+        if fmt == "json":
+            from atlasbridge.dashboard.export import export_session_json
+
+            bundle = export_session_json(repo, session_id)
+            if bundle is None:
+                click.echo(f"Error: Session {session_id!r} not found.", err=True)
+                raise SystemExit(1)
+
+            import json
+
+            content = json.dumps(bundle, indent=2, default=str)
+
+            if output_path:
+                Path(output_path).write_text(content, encoding="utf-8")
+                click.echo(f"Exported JSON to {output_path}")
+            else:
+                click.echo(content)
+        else:
+            from atlasbridge.dashboard.export import export_session_html
+
+            html = export_session_html(repo, session_id)
+            if html is None:
+                click.echo(f"Error: Session {session_id!r} not found.", err=True)
+                raise SystemExit(1)
+
+            if output_path is None:
+                output_path = f"session_{session_id}.html"
+
+            Path(output_path).write_text(html, encoding="utf-8")
+            click.echo(f"Exported HTML to {output_path}")
+    finally:
+        repo.close()
