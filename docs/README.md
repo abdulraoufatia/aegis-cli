@@ -14,7 +14,8 @@ This index helps you find the right document fast, whether you are a new user, a
 2. [Autonomy Modes](autonomy-modes.md) — understand Off / Assist / Full
 3. [Policy Authoring Guide](policy-authoring.md) — write your first policy
 4. [CLI UX](cli-ux.md) — learn the commands and TUI
-5. [Setup (Non-interactive)](setup-noninteractive.md) — headless / CI deployment
+5. [Dashboard](dashboard.md) — local governance dashboard, SSH tunnel access, session export
+6. [Setup (Non-interactive)](setup-noninteractive.md) — headless / CI deployment
 
 ### B) Power Users — writing policies and tuning autopilot
 
@@ -80,6 +81,9 @@ This index helps you find the right document fast, whether you are a new user, a
 | [enterprise-governance-api-spec.md](enterprise-governance-api-spec.md) | Contributor | Phase C API: REST endpoints, auth model, error catalog, WebSocket events | For Phase C API design | Design Only |
 | [enterprise-data-model.md](enterprise-data-model.md) | Contributor | Phase C data model: ER diagram, 10 tables, RLS tenancy, sync protocol | For Phase C data design | Design Only |
 | [enterprise-dashboard-threat-model.md](enterprise-dashboard-threat-model.md) | Contributor | Phase C security: STRIDE analysis, trust boundaries, incident response | For Phase C security review | Design Only |
+| [api-stability-policy.md](api-stability-policy.md) | Contributor | Stability levels, deprecation rules, breaking change policy | Before modifying frozen APIs | Current |
+| [contract-surfaces.md](contract-surfaces.md) | Contributor | Formal spec of all 8 frozen contract surfaces | Before modifying any contract surface | Current |
+| [dashboard.md](dashboard.md) | Both | Dashboard deployment: SSH tunnel, reverse proxy, export, mobile access | When accessing dashboard remotely | Current |
 
 ---
 
