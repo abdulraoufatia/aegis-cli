@@ -286,328 +286,31 @@ def channel_add(channel_type: str, token: str, users: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# adapter
+# adapter (extracted to _adapter.py)
 # ---------------------------------------------------------------------------
 
+from atlasbridge.cli._adapter import adapter_group, adapters_cmd  # noqa: E402
 
-@cli.group()
-def adapter() -> None:
-    """Tool adapter management."""
-
-
-@adapter.command("list")
-@click.option("--json", "as_json", is_flag=True, default=False)
-def adapter_list(as_json: bool) -> None:
-    """Show available tool adapters."""
-    import atlasbridge.adapters  # noqa: F401 — registers all built-in adapters
-    from atlasbridge.adapters.base import AdapterRegistry
-
-    adapters = AdapterRegistry.list_all()
-    if as_json:
-        import json
-
-        rows = [
-            {
-                "name": name,
-                "tool_name": cls.tool_name,
-                "description": cls.description,
-                "min_version": cls.min_tool_version,
-            }
-            for name, cls in adapters.items()
-        ]
-        click.echo(json.dumps(rows, indent=2))
-    else:
-        console.print("\n[bold]Available Adapters[/bold]\n")
-        for name, cls in adapters.items():
-            console.print(
-                f"  [cyan]{name:<12}[/cyan] {cls.description or '—'}"
-                + (f"  (min: {cls.min_tool_version})" if cls.min_tool_version else "")
-            )
-        console.print()
+cli.add_command(adapter_group, "adapter")
+cli.add_command(adapters_cmd)
 
 
 # ---------------------------------------------------------------------------
-# adapters (top-level shortcut)
+# version (extracted to _version.py)
 # ---------------------------------------------------------------------------
 
+from atlasbridge.cli._version import version_cmd  # noqa: E402
 
-@cli.command("adapters")
-@click.option("--json", "as_json", is_flag=True, default=False, help="Machine-readable JSON output")
-def adapters_cmd(as_json: bool) -> None:
-    """List installed tool adapters."""
-    import shutil
-
-    import atlasbridge.adapters  # noqa: F401 — registers all built-in adapters
-    from atlasbridge.adapters.base import AdapterRegistry
-
-    registry = AdapterRegistry.list_all()
-
-    if not registry:
-        err_console.print(
-            "[red]Error:[/red] No adapters found. Reinstall: pip install -U atlasbridge"
-        )
-        raise SystemExit(1)
-
-    if as_json:
-        import json
-
-        rows = []
-        for name, cls in sorted(registry.items()):
-            rows.append(
-                {
-                    "name": name,
-                    "kind": "llm",
-                    "enabled": bool(shutil.which(cls.tool_name) if cls.tool_name else False),
-                    "source": "builtin",
-                    "tool_name": cls.tool_name,
-                    "description": cls.description,
-                    "min_version": cls.min_tool_version,
-                }
-            )
-        click.echo(json.dumps({"adapters": rows, "count": len(rows)}, indent=2))
-    else:
-        console.print("\n[bold]Installed Adapters[/bold]\n")
-        for name, cls in sorted(registry.items()):
-            on_path = bool(shutil.which(cls.tool_name)) if cls.tool_name else False
-            status = "[green]on PATH[/green]" if on_path else "[dim]not on PATH[/dim]"
-            desc = cls.description or "—"
-            ver = f"  (min: {cls.min_tool_version})" if cls.min_tool_version else ""
-            console.print(f"  [cyan]{name:<14}[/cyan] {desc}{ver}  {status}")
-        console.print(f"\n  {len(registry)} adapter(s) registered.\n")
+cli.add_command(version_cmd, "version")
 
 
 # ---------------------------------------------------------------------------
-# version
+# db (extracted to _db.py)
 # ---------------------------------------------------------------------------
 
+from atlasbridge.cli._db import db_group  # noqa: E402
 
-@cli.command()
-@click.option("--json", "as_json", is_flag=True, default=False)
-@click.option(
-    "--verbose",
-    "-v",
-    is_flag=True,
-    default=False,
-    help="Show install path, config path, and build info",
-)
-@click.option("--experimental", is_flag=True, default=False, help="Show experimental flags")
-def version(as_json: bool, verbose: bool, experimental: bool) -> None:
-    """Show version information and feature flags."""
-    import importlib.util
-    import platform
-    import sys as _sys
-
-    flags = {
-        "conpty_backend": False,
-        "slack_channel": False,
-        "whatsapp_channel": False,
-    }
-    if experimental:
-        flags["windows_conpty"] = _sys.platform == "win32"
-
-    # Resolve install path (location of the atlasbridge package)
-    spec = importlib.util.find_spec("atlasbridge")
-    install_path = str(spec.origin) if spec and spec.origin else "unknown"
-
-    # Resolve config path
-    try:
-        from atlasbridge.core.constants import _default_data_dir
-
-        config_path = str(_default_data_dir() / "config.toml")
-    except Exception:  # noqa: BLE001
-        config_path = "unknown"
-
-    # Resolve commit SHA from package metadata (populated by setuptools-scm if used)
-    commit_sha = "n/a"
-
-    if as_json:
-        import json
-
-        data: dict = {
-            "atlasbridge": __version__,
-            "python": _sys.version.split()[0],
-            "platform": _sys.platform,
-            "arch": platform.machine(),
-            "feature_flags": flags,
-        }
-        if verbose:
-            data["install_path"] = install_path
-            data["config_path"] = config_path
-            data["commit"] = commit_sha
-        click.echo(json.dumps(data, indent=2))
-    else:
-        console.print(f"atlasbridge {__version__}")
-        console.print(f"Python {_sys.version.split()[0]}")
-        console.print(f"Platform: {_sys.platform} {platform.machine()}")
-        if verbose:
-            console.print(f"Install:  {install_path}")
-            console.print(f"Config:   {config_path}")
-            console.print(f"Commit:   {commit_sha}")
-        console.print("\nFeature flags:")
-        for flag, enabled in flags.items():
-            status = "[green]enabled[/green]" if enabled else "[dim]disabled[/dim]"
-            console.print(f"  {flag:<22} {status}")
-
-
-# ---------------------------------------------------------------------------
-# db
-# ---------------------------------------------------------------------------
-
-
-@cli.group()
-def db() -> None:
-    """Database inspection and management."""
-
-
-@db.command("info")
-@click.option("--json", "as_json", is_flag=True, default=False)
-def db_info(as_json: bool) -> None:
-    """Show database path, schema version, and table stats."""
-    from atlasbridge.core.config import atlasbridge_dir
-    from atlasbridge.core.constants import DB_FILENAME
-
-    db_path = atlasbridge_dir() / DB_FILENAME
-
-    if not db_path.exists():
-        if as_json:
-            import json as _json
-
-            click.echo(_json.dumps({"exists": False, "path": str(db_path)}))
-        else:
-            console.print(f"Database does not exist yet: {db_path}")
-            console.print("It will be created on the first [cyan]atlasbridge run[/cyan].")
-        return
-
-    import sqlite3
-
-    conn = sqlite3.connect(str(db_path), check_same_thread=False)
-    try:
-        from atlasbridge.core.store.migrations import LATEST_SCHEMA_VERSION, get_user_version
-
-        version = get_user_version(conn)
-        tables = {}
-        for table in ("sessions", "prompts", "replies", "audit_events"):
-            try:
-                row = conn.execute(f"SELECT count(*) FROM {table}").fetchone()  # noqa: S608
-                tables[table] = row[0] if row else 0
-            except Exception:  # noqa: BLE001
-                tables[table] = -1  # table missing
-
-        size_kb = db_path.stat().st_size / 1024
-
-        if as_json:
-            import json as _json
-
-            click.echo(
-                _json.dumps(
-                    {
-                        "exists": True,
-                        "path": str(db_path),
-                        "schema_version": version,
-                        "latest_version": LATEST_SCHEMA_VERSION,
-                        "size_kb": round(size_kb, 1),
-                        "tables": tables,
-                    },
-                    indent=2,
-                )
-            )
-        else:
-            console.print(f"[bold]Database[/bold]: {db_path}")
-            console.print(f"Schema version: {version} (latest: {LATEST_SCHEMA_VERSION})")
-            console.print(f"Size: {size_kb:.1f} KB")
-            console.print("\nTable row counts:")
-            for table, count in tables.items():
-                status = f"{count}" if count >= 0 else "[red]missing[/red]"
-                console.print(f"  {table:<16} {status}")
-    finally:
-        conn.close()
-
-
-@db.command("migrate")
-@click.option(
-    "--dry-run", is_flag=True, default=False, help="Show pending migrations without applying them."
-)
-@click.option(
-    "--json", "as_json", is_flag=True, default=False, help="Machine-readable JSON output."
-)
-def db_migrate(dry_run: bool, as_json: bool) -> None:
-    """Run (or preview) pending schema migrations."""
-    from atlasbridge.core.config import atlasbridge_dir
-    from atlasbridge.core.constants import DB_FILENAME
-
-    db_path = atlasbridge_dir() / DB_FILENAME
-
-    if not db_path.exists():
-        if as_json:
-            import json as _json
-
-            click.echo(_json.dumps({"status": "no_database", "path": str(db_path)}))
-        else:
-            console.print(f"Database does not exist yet: {db_path}")
-            console.print("It will be created on the first [cyan]atlasbridge run[/cyan].")
-        return
-
-    import sqlite3
-
-    from atlasbridge.core.store.migrations import LATEST_SCHEMA_VERSION, get_user_version
-
-    conn = sqlite3.connect(str(db_path), check_same_thread=False)
-    try:
-        current = get_user_version(conn)
-        pending = list(range(current, LATEST_SCHEMA_VERSION))
-
-        if as_json:
-            import json as _json
-
-            click.echo(
-                _json.dumps(
-                    {
-                        "path": str(db_path),
-                        "current_version": current,
-                        "latest_version": LATEST_SCHEMA_VERSION,
-                        "pending_migrations": [f"v{v} -> v{v + 1}" for v in pending],
-                        "dry_run": dry_run,
-                        "status": "up_to_date"
-                        if not pending
-                        else ("dry_run" if dry_run else "applied"),
-                    },
-                    indent=2,
-                )
-            )
-            if not pending or dry_run:
-                return
-
-        if not pending:
-            if not as_json:
-                console.print(f"[green]Database is up to date[/green] (v{current}).")
-            return
-
-        if dry_run:
-            if not as_json:
-                console.print(f"[bold]Database[/bold]: {db_path}")
-                console.print(f"Current schema version: {current}")
-                console.print(f"Latest schema version:  {LATEST_SCHEMA_VERSION}")
-                console.print(f"\n[yellow]Pending migrations ({len(pending)}):[/yellow]")
-                for v in pending:
-                    console.print(f"  v{v} -> v{v + 1}")
-                console.print("\nRun without [cyan]--dry-run[/cyan] to apply.")
-            return
-
-        # Apply migrations
-        conn.close()
-        conn = None  # type: ignore[assignment]
-
-        from atlasbridge.core.store.database import Database
-
-        database = Database(db_path)
-        database.connect()
-        database.close()
-        console.print(
-            f"[green]Migrations applied successfully[/green] (v{current} -> v{LATEST_SCHEMA_VERSION})."
-        )
-    finally:
-        if conn is not None:
-            conn.close()
+cli.add_command(db_group, "db")
 
 
 # ---------------------------------------------------------------------------
@@ -688,8 +391,8 @@ def pause(pause_all: bool) -> None:
                 db = Database(db_path)
                 db.connect()
                 try:
-                    sessions = db.list_active_sessions()
-                    count = len(sessions)
+                    active_sessions = db.list_active_sessions()
+                    count = len(active_sessions)
                 finally:
                     db.close()
                 click.echo(f"Active sessions affected: {count}")
