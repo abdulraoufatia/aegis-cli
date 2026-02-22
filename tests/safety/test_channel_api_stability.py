@@ -81,3 +81,30 @@ def test_send_prompt_signature():
     sig = inspect.signature(BaseChannel.send_prompt)
     params = list(sig.parameters.keys())
     assert params == ["self", "event"], f"send_prompt signature changed: {params}"
+
+
+def test_notify_signature():
+    """notify() must accept (self, message, session_id)."""
+    sig = inspect.signature(BaseChannel.notify)
+    params = list(sig.parameters.keys())
+    assert params == ["self", "message", "session_id"], f"notify signature changed: {params}"
+
+
+def test_interface_version_accessible():
+    """BaseChannel.INTERFACE_VERSION must be a semver string."""
+    import re
+
+    version = BaseChannel.INTERFACE_VERSION
+    assert isinstance(version, str), f"INTERFACE_VERSION is not a string: {type(version)}"
+    assert re.match(r"^\d+\.\d+\.\d+$", version), (
+        f"INTERFACE_VERSION is not valid semver: {version!r}"
+    )
+
+
+def test_guarded_send_exists():
+    """BaseChannel must have guarded_send (circuit-breaker wrapper)."""
+    method = getattr(BaseChannel, "guarded_send", None)
+    assert method is not None, "guarded_send missing from BaseChannel"
+    assert not getattr(method, "__isabstractmethod__", False), (
+        "guarded_send must not be abstract — it has a default implementation"
+    )

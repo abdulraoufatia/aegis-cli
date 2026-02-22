@@ -1,8 +1,8 @@
 # AtlasBridge Channel Interface Specification
 
-**Version:** 0.3.0
-**Status:** Authoritative Design
-**Last updated:** 2026-02-21
+**Version:** 1.0.0
+**Status:** Frozen (GA contract — breaking changes require major version bump)
+**Last updated:** 2026-02-22
 
 ---
 
@@ -26,166 +26,52 @@ The abstraction also enables multi-channel deployments: a user who wants both Te
 
 ## 2. BaseChannel Interface
 
-```python
-# src/atlasbridge/channels/base.py
-from __future__ import annotations
+The following is the canonical definition of the channel contract as of v1.0.0. All channels in `src/atlasbridge/channels/` must subclass `BaseChannel` and implement every abstract method.
 
-from abc import ABC, abstractmethod
-from typing import AsyncIterator
+### Class Attributes
 
-from atlasbridge.adapters.base import PromptEvent, Reply
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `INTERFACE_VERSION` | `str` | Semver string (`"1.0.0"`). Breaking changes require a major bump. |
+| `channel_name` | `str` | Short identifier (e.g. `"telegram"`). Used in config and logs. |
+| `display_name` | `str` | Human-readable label shown in `atlasbridge channel list`. |
 
+### Abstract Methods (must implement)
 
-class BaseChannel(ABC):
-    """
-    Abstract base for all AtlasBridge notification and reply channels.
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `start` | `async (self) -> None` | Connect to backend and start receiving messages. |
+| `close` | `async (self) -> None` | Disconnect and stop all background tasks. |
+| `send_prompt` | `async (self, event: PromptEvent) -> str` | Send prompt notification. Returns channel message ID. |
+| `notify` | `async (self, message: str, session_id: str = "") -> None` | Send plain text notification (not a prompt). |
+| `edit_prompt_message` | `async (self, message_id: str, new_text: str, session_id: str = "") -> None` | Edit a previously sent prompt message. |
+| `receive_replies` | `(self) -> AsyncIterator[Reply]` | Async generator yielding Reply objects from the human. |
+| `is_allowed` | `(self, identity: str) -> bool` | Return True if identity is in the allowlist. |
 
-    A channel is responsible for:
-      1. Establishing and maintaining a connection to the messaging platform.
-      2. Formatting and sending a PromptEvent as a user-visible message.
-      3. Sending plain informational notifications (session start/end, errors).
-      4. Receiving and yielding Reply objects as the user responds.
-      5. Gracefully closing the connection on session end.
-      6. Reporting its own health (connected, authenticated, not rate-limited).
+### Optional Methods (have defaults)
 
-    Channels must NOT:
-      - Validate or modify the Reply value. That is the supervisor's responsibility.
-      - Write to the database or audit log. The supervisor owns persistence.
-      - Block the event loop. All network I/O must be async.
-      - Inject replies directly into the PTY. That is the adapter's responsibility.
-    """
+| Method | Signature | Default |
+|--------|-----------|---------|
+| `healthcheck` | `(self) -> dict[str, Any]` | Returns status dict with circuit breaker state. |
+| `guarded_send` | `async (self, event: PromptEvent) -> str` | Send through circuit breaker. Raises `ChannelUnavailableError` if open. |
 
-    @abstractmethod
-    async def start(self) -> None:
-        """
-        Start the channel: establish connection, authenticate, begin polling or listening.
+### Circuit Breaker
 
-        For long-polling channels (Telegram), this starts a background asyncio task
-        that polls the platform API and places replies onto an internal queue.
+Each `BaseChannel` instance has a `circuit_breaker` property (lazy-initialised `ChannelCircuitBreaker`) with:
 
-        For webhook/event-driven channels (Slack Socket Mode), this opens the WebSocket
-        connection and registers event handlers.
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `threshold` | 3 | Consecutive failures before circuit opens. |
+| `recovery_seconds` | 30.0 | Time before half-open probe is allowed. |
 
-        This method must return promptly. The actual connection work happens in the
-        background task. The caller can await healthcheck() to confirm the channel
-        is ready.
+Methods: `record_success()`, `record_failure()`, `reset()`, `is_open` (property).
 
-        Raises
-        ------
-        ChannelStartError
-            If credentials are invalid or the platform API is unreachable.
-        """
+### Shipped Channel Implementations
 
-    @abstractmethod
-    async def send_prompt(self, event: PromptEvent) -> str:
-        """
-        Send a prompt to the user. Returns a platform-specific message_id for tracking.
-
-        The channel must:
-          - Format the prompt according to the platform's message format (see platform
-            sections for format specs).
-          - Include: the prompt excerpt, the prompt type label, the session identifier,
-            the TTL countdown, and one-tap reply options.
-          - Store the mapping from prompt_id to message_id so that the message can
-            be edited later (e.g., to show "expired" or "answered").
-
-        Parameters
-        ----------
-        event:
-            The PromptEvent produced by the adapter. The channel must use
-            event.prompt_id and event.session_id to construct reply callback data.
-            The channel must use event.choices for TYPE_MULTIPLE_CHOICE keyboards.
-            The channel must use event.constraints["max_length"] for free-text guidance.
-
-        Returns
-        -------
-        str
-            A platform-specific message identifier (e.g., Telegram message_id as string,
-            Slack message ts). Used by the supervisor to edit the message on expiry or
-            receipt of a reply.
-
-        Raises
-        ------
-        ChannelSendError
-            If the platform API rejects the send (non-transient error).
-        """
-
-    @abstractmethod
-    async def notify(self, session_id: str, message: str) -> None:
-        """
-        Send a plain informational notification. No reply is expected.
-
-        Used for:
-          - Session started / session ended announcements.
-          - Timeout notices (prompt expired, safe default injected).
-          - Error conditions (PTY crashed, config invalid).
-          - Rate limit warnings.
-
-        Parameters
-        ----------
-        session_id:
-            The session this notification belongs to. Included in the message
-            for multi-session disambiguation.
-        message:
-            Pre-formatted human-readable text. The channel may apply platform-specific
-            escaping (e.g., Telegram MarkdownV2 escaping) before sending.
-        """
-
-    @abstractmethod
-    async def receive_replies(self) -> AsyncIterator[Reply]:
-        """
-        Yield Reply objects as the user responds to prompts on this channel.
-
-        For long-polling channels, this yields from an internal asyncio.Queue
-        that is populated by the background polling task.
-
-        For event-driven channels, this yields from a queue populated by
-        incoming WebSocket events.
-
-        Each yielded Reply must have already passed channel-level validation:
-          - The user is in the allowed_users whitelist for this channel.
-          - The callback data or message text is syntactically valid.
-          - The nonce is present and correctly formatted (32 hex chars).
-
-        The supervisor is responsible for semantic validation (checking nonce
-        against the DB, expiry, session binding).
-
-        Yields
-        ------
-        Reply
-            A fully populated Reply object ready for the supervisor to process.
-        """
-
-    @abstractmethod
-    async def close(self) -> None:
-        """
-        Gracefully close the channel connection.
-
-        Must:
-          - Cancel and await background polling/listening tasks.
-          - Close HTTP clients or WebSocket connections.
-          - Flush any pending outbound messages (best-effort, max 2s).
-          - Not raise exceptions; log and swallow errors during shutdown.
-        """
-
-    @abstractmethod
-    async def healthcheck(self) -> bool:
-        """
-        Return True if the channel is connected, authenticated, and healthy.
-
-        Used by:
-          - `atlasbridge doctor` — reports channel health in the diagnostic output.
-          - The supervisor's startup sequence — waits for healthcheck() == True
-            before beginning PTY supervision (with a 10s timeout).
-          - The stall watchdog — if the channel is unhealthy during a pending prompt,
-            the watchdog extends the TTL rather than injecting the safe default.
-
-        Returns
-        -------
-        bool
-            True if the channel can currently send and receive messages.
-        """
-```
+| Name | Class | Status |
+|------|-------|--------|
+| `telegram` | `TelegramChannel` | Production |
+| `slack` | `SlackChannel` | Production |
 
 ---
 
