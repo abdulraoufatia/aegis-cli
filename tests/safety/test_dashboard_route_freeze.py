@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-
 FROZEN_ROUTES: set[tuple[str, str]] = {
     # HTML pages
     ("GET", "/"),
