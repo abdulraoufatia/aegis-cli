@@ -9,10 +9,30 @@
 <div class="notice">
     <h3>No trace data</h3>
     <p>The decision trace file does not exist yet. Enable autopilot and run a session to generate trace data:</p>
-    <pre>atlasbridge autopilot enable
+    <pre class="code-hint">atlasbridge autopilot enable
 atlasbridge run claude</pre>
 </div>
 {% else %}
+
+<form class="filter-bar" method="get" action="/traces">
+    <select name="action_type" class="filter-select">
+        <option value="">All actions</option>
+        <option value="auto_respond" {% if filter_action_type == 'auto_respond' %}selected{% endif %}>auto_respond</option>
+        <option value="escalate" {% if filter_action_type == 'escalate' %}selected{% endif %}>escalate</option>
+        <option value="require_human" {% if filter_action_type == 'require_human' %}selected{% endif %}>require_human</option>
+        <option value="block" {% if filter_action_type == 'block' %}selected{% endif %}>block</option>
+    </select>
+    <select name="confidence" class="filter-select">
+        <option value="">All confidences</option>
+        <option value="high" {% if filter_confidence == 'high' %}selected{% endif %}>High</option>
+        <option value="medium" {% if filter_confidence == 'medium' %}selected{% endif %}>Medium</option>
+        <option value="low" {% if filter_confidence == 'low' %}selected{% endif %}>Low</option>
+    </select>
+    <button type="submit" class="filter-btn">Filter</button>
+    {% if filter_action_type or filter_confidence %}
+    <a href="/traces" class="filter-clear">Clear</a>
+    {% endif %}
+</form>
 
 {% if entries %}
 <p class="result-count">Showing {{ entries|length }} of {{ total }} entries (page {{ page }}/{{ total_pages }})</p>
@@ -29,7 +49,7 @@ atlasbridge run claude</pre>
     <tbody>
         {% for e in entries %}
         <tr>
-            <td>{{ e.get('timestamp', '&mdash;') }}</td>
+            <td title="{{ e.get('timestamp', '') }}">{{ e.get('timestamp', '&mdash;')|timeago }}</td>
             <td>{{ e.get('action_type', '&mdash;') }}</td>
             <td>{{ e.get('confidence', '&mdash;') }}</td>
             <td>{{ e.get('rule_id', '&mdash;') }}</td>
@@ -55,7 +75,7 @@ atlasbridge run claude</pre>
     {% endif %}
 </div>
 {% else %}
-<p class="empty">No trace entries found{% if filter_action_type or filter_confidence %} matching the current filters{% endif %}.</p>
+<p class="empty">No trace entries found{% if filter_action_type or filter_confidence %} matching the current filters. <a href="/traces">Clear filters</a>{% endif %}.</p>
 {% endif %}
 
 {% endif %}

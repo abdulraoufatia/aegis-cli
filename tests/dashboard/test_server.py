@@ -110,7 +110,7 @@ class TestIntegrityEndpoint:
 
     def test_integrity_shows_status(self, client):
         response = client.get("/integrity")
-        assert "VALID" in response.text
+        assert "VERIFIED" in response.text
 
 
 class TestApiStatsEndpoint:
