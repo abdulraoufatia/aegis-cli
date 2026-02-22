@@ -45,10 +45,20 @@ Closes #<!-- issue number -->
 - [ ] Relevant `docs/` files updated
 - [ ] Help text / `--help` output updated (if CLI change)
 
+## Governance Gates
+
+- [ ] No changes to `core/`, `os/`, `channels/`, `adapters/` unless explicitly required
+- [ ] `BaseAdapter` / `BaseChannel` ABCs unchanged (or documented in breaking changes)
+- [ ] Policy DSL schema unchanged (or documented in breaking changes)
+- [ ] Dashboard default binding remains loopback-only
+- [ ] No new production dependencies in core runtime
+- [ ] "Cloud OBSERVES, local EXECUTES" invariant preserved
+
 ## Checklist
 
 - [ ] My branch follows the naming convention (`feature/`, `fix/`, `docs/`)
 - [ ] My commits follow Conventional Commits format
 - [ ] I have not committed any secrets or tokens
-- [ ] CI is passing
+- [ ] CI is passing (lint, type check, tests, safety gate)
+- [ ] Safety tests pass: `pytest tests/safety/ -v`
 - [ ] I have requested a review
