@@ -241,7 +241,8 @@ def create_app(
         tool = request.query_params.get("tool") or None
         q = request.query_params.get("q") or None
         sessions = repo.list_sessions(limit=100, status=status, tool=tool, q=q)
-        return JSONResponse({"sessions": sessions, "total": repo.count_sessions(status=status, tool=tool, q=q)})
+        total = repo.count_sessions(status=status, tool=tool, q=q)
+        return JSONResponse({"sessions": sessions, "total": total})
 
     @app.post("/api/integrity/verify")
     async def api_verify_integrity():

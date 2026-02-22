@@ -190,7 +190,13 @@ def _seed_data(conn: sqlite3.Connection) -> None:
 
     # Audit events with hash chain
     prev_hash = ""
-    event_types = ["prompt_detected", "prompt_resolved", "prompt_detected", "session_started", "prompt_detected"]
+    event_types = [
+        "prompt_detected",
+        "prompt_resolved",
+        "prompt_detected",
+        "session_started",
+        "prompt_detected",
+    ]
     for i in range(5):
         event_id = f"evt-{i:03d}"
         event_type = event_types[i]

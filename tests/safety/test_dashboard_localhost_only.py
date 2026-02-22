@@ -85,6 +85,5 @@ class TestNoMutationRoutes:
             if hasattr(route, "methods"):
                 overlap = forbidden_methods & route.methods
                 assert not overlap, (
-                    f"Route {getattr(route, 'path', '?')} exposes "
-                    f"forbidden methods: {overlap}"
+                    f"Route {getattr(route, 'path', '?')} exposes forbidden methods: {overlap}"
                 )
