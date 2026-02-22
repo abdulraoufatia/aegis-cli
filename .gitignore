@@ -38,6 +38,7 @@ venv.bak/
 *.secret
 secrets.toml
 config.local.toml
+.pypirc
 
 # AtlasBridge runtime
 atlasbridge.db
