@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.5] — 2026-02-22
+
+### Added
+
+- **Phase C.X — Operator Console Mode**
+  - New `atlasbridge console` command — single-screen TUI for managing daemon, agent, and dashboard processes
+  - `ProcessSupervisor` — pure Python subprocess manager for daemon/dashboard/agent lifecycle
+  - `ConsoleApp` + `ConsoleScreen` — Textual TUI with status cards, process table, doctor panel, audit log
+  - Keybindings: `d` (daemon), `a` (agent), `w` (dashboard), `h` (health), `r` (refresh), `q` (quit)
+  - 2-second live status polling with reactive UI updates
+  - Safety banner: "OPERATOR CONSOLE — LOCAL EXECUTION ONLY"
+  - CLI options: `--tool` (default agent tool), `--dashboard-port` (dashboard port)
+  - `docs/console.md` — full operator console documentation
+- 58 new tests (1324 total): 25 supervisor, 26 app, 7 CLI
+
+---
+
 ## [0.9.4] — 2026-02-22
 
 ### Added

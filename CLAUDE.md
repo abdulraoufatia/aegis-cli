@@ -68,6 +68,7 @@ src/atlasbridge/         ← installed package (where = ["src"])
   ui/                    — app.py, state.py, polling.py, css/atlasbridge.tcss
                            components/status_cards.py
                            screens/: welcome, wizard, complete, sessions, logs, doctor
+  console/               — app.py, supervisor.py, css/console.tcss (operator console TUI)
   dashboard/             — app.py, repo.py, sanitize.py, templates/, static/
   cli/                   — main.py + _setup/_daemon/_run/_status/etc.
 tests/
@@ -288,6 +289,7 @@ Policy module layout:
 | v0.9.2 | Phase C.2 | Released | Dashboard hardening — filtering, pagination, light theme, auto-refresh, 1228 tests |
 | v0.9.3 | Phase C.3 | Released | Remote-ready UX — safety guard, session export, mobile layout, deployment guide, 1260 tests |
 | v0.9.4 | Phase D | Released | Platform automation — CI hardening, secret scan, coverage governance, release automation |
+| v0.9.5 | Phase C.X | Released | Operator console — `atlasbridge console` single-screen process management TUI |
 | v1.0.0 | GA | Planned | Stable adapter + channel API, all platforms, all agents |
 
 ---
