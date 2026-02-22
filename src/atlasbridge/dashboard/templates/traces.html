@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Decision Traces &mdash; AtlasBridge{% endblock %}
+
+{% block content %}
+<h1>Decision Traces</h1>
+
+{% if not trace_available %}
+<div class="notice">
+    <h3>No trace data</h3>
+    <p>The decision trace file does not exist yet. Enable autopilot and run a session to generate trace data:</p>
+    <pre>atlasbridge autopilot enable
+atlasbridge run claude</pre>
+</div>
+{% else %}
+
+{% if entries %}
+<p class="result-count">Showing {{ entries|length }} of {{ total }} entries (page {{ page }}/{{ total_pages }})</p>
+<table>
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Action</th>
+            <th>Confidence</th>
+            <th>Rule ID</th>
+            <th>Session</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for e in entries %}
+        <tr>
+            <td>{{ e.get('timestamp', '&mdash;') }}</td>
+            <td>{{ e.get('action_type', '&mdash;') }}</td>
+            <td>{{ e.get('confidence', '&mdash;') }}</td>
+            <td>{{ e.get('rule_id', '&mdash;') }}</td>
+            <td>
+                {% if e.get('session_id') %}
+                <a href="/sessions/{{ e.session_id }}">{{ e.session_id[:12] }}&hellip;</a>
+                {% else %}
+                &mdash;
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="pagination">
+    {% if page > 1 %}
+    <a href="/traces?page={{ page - 1 }}{% if filter_action_type %}&amp;action_type={{ filter_action_type }}{% endif %}{% if filter_confidence %}&amp;confidence={{ filter_confidence }}{% endif %}">&larr; Previous</a>
+    {% endif %}
+    <span>Page {{ page }} of {{ total_pages }}</span>
+    {% if page < total_pages %}
+    <a href="/traces?page={{ page + 1 }}{% if filter_action_type %}&amp;action_type={{ filter_action_type }}{% endif %}{% if filter_confidence %}&amp;confidence={{ filter_confidence }}{% endif %}">Next &rarr;</a>
+    {% endif %}
+</div>
+{% else %}
+<p class="empty">No trace entries found{% if filter_action_type or filter_confidence %} matching the current filters{% endif %}.</p>
+{% endif %}
+
+{% endif %}
+{% endblock %}
