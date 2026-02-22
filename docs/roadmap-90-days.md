@@ -117,7 +117,7 @@ The positioning is settled: **policy-driven autonomous runtime for AI CLI agents
 - **Hash-chained DecisionTraceEntryV2** — 20-field trace entries with SHA-256 chain (`previous_hash` → `current_hash`) for tamper-evident audit
 - **Policy pinning** — session-level policy hash capture to detect mid-session drift
 - **Policy governance lifecycle** — hash computation, snapshot diffing, and pin validation
-- **Cloud interfaces (Phase B spec)** — abstract ABCs for policy registry, escalation relay, audit streaming, auth, and control channel transport; all have `Disabled*` no-op stubs
+- **Cloud interfaces (Phase B spec)** — abstract ABCs for policy registry, escalation relay, audit streaming, auth, and control channel transport; all have `Disabled*` no-op stubs *(later extracted to `docs/cloud-spec.md` in #108)*
 - **Cloud protocol spec (Phase C design)** — WSS + Ed25519 signed messages, advisory-only control channel, multi-tenant SaaS architecture docs
 - **CLI commands** — `atlasbridge edition`, `atlasbridge features`, `atlasbridge cloud status`
 - **66 new tests** — edition detection, risk classification, trace integrity, policy pinning, cloud disabled stubs

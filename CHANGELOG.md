@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Audit log rotation** — `atlasbridge db archive` command archives old events to separate SQLite files, preserving hash chain integrity. Supports `--days`, `--dry-run`, `--json`. Rotates up to 3 archive files (#72, PR #121)
+- **Circuit breaker activation** — `guarded_send()` method on `BaseChannel` wires the existing `ChannelCircuitBreaker` into channel send paths. Structured logging on circuit open/reject. `healthcheck()` reports circuit state as ok/degraded (#71, PR #122)
+- `ChannelUnavailableError` exception for circuit-open rejection
+- `docs/cloud-spec.md` — Phase B cloud governance interface specification (extracted from source)
+- `docs/sprint-automation-prompt.md` — portable sprint workflow prompt
 - Pytest markers: `safety`, `e2e`, `optional`, `performance` — run subsets with `pytest -m safety` (#105)
 - Auto-apply conftest hooks for `tests/safety/` and `tests/e2e/` directories
 - `.secrets.baseline` for detect-secrets pre-commit hook (#73)
@@ -20,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **mypy overrides narrowed** — replaced blanket `ignore_errors = true` for 6 module groups with targeted per-file `disable_error_code` and `disallow_untyped_defs = false`. 44 stale `# type: ignore` comments removed, 12 real type errors fixed. 0 mypy errors remain (#102, #69, PR #120)
+- **Cloud module extracted to docs** — 7 interface-only Phase B files (415 lines) moved from `src/atlasbridge/cloud/` to `docs/cloud-spec.md`. `CloudConfig` inlined into `_enterprise.py`. Safety tests guard against re-introduction (#108, PR #123)
+- **TUI cleanup** — consolidated `tui/` utilities, removed dead code, standardized imports (#104, PR #118)
+- **CLI split** — extracted adapter, db, version commands from monolithic `main.py` (#103, PR #119)
+- **DaemonManager types** — added type annotations to daemon orchestrator (#101, PR #118)
 - Coverage floor raised from 80% to 84% (#70)
 - Coverage config restructured: daemon and channel ABCs now measured (#95)
 - v0.9.6 added to README.md status table (#93)
