@@ -17,7 +17,7 @@ from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Label, RichLog, Static
 
 from atlasbridge import __version__
-from atlasbridge.console.supervisor import ProcessSupervisor
+from atlasbridge.console.supervisor import ProcessSupervisor, SystemHealth, compute_health
 
 _CSS_TEXT: str = files("atlasbridge.console.css").joinpath("console.tcss").read_text("utf-8")
 
@@ -74,6 +74,9 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
         self._supervisor = supervisor
         self._default_tool = default_tool
         self._dashboard_port = dashboard_port
+        self._last_poll_time: str = ""
+        self._last_event_time: str = ""
+        self._doctor_results: list[dict] | None = None  # type: ignore[type-arg]
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -83,6 +86,10 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
                 " OPERATOR CONSOLE — LOCAL EXECUTION ONLY",
                 id="safety-banner",
             )
+            # Health state line
+            yield Label("", id="health-state")
+            # Data paths
+            yield Label("", id="data-paths")
 
             # Status cards
             with Horizontal(id="console-cards"):
@@ -99,7 +106,7 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
             # Doctor panel
             with Vertical(id="doctor-section"):
                 yield Label("Doctor", id="doctor-title")
-                yield Label("Press [h] to run health check", id="doctor-results")
+                yield RichLog(id="doctor-results", wrap=True, markup=True)
 
             # Audit log
             with Vertical(id="audit-section"):
@@ -112,6 +119,9 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
         # Set up process table columns
         table = self.query_one("#process-table", DataTable)
         table.add_columns("TYPE", "PID", "STATUS", "UPTIME", "INFO")
+
+        # Display data paths (once, not every poll)
+        self._show_data_paths()
 
         # Initial poll
         self._do_poll()
@@ -126,12 +136,22 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
         """Poll all process statuses and update the UI."""
         try:
             self._update_statuses()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            try:
+                self._update_health_banner(SystemHealth.RED, error=str(exc))
+            except Exception:  # noqa: BLE001
+                pass
 
     def _update_statuses(self) -> None:
         """Update all status cards and the process table."""
+        from datetime import datetime
+
         statuses = self._supervisor.all_status()
+        self._last_poll_time = datetime.now().strftime("%H:%M:%S")
+
+        # Compute and display health
+        health = compute_health(statuses, self._doctor_results)
+        self._update_health_banner(health)
 
         # Update cards
         for info in statuses:
@@ -177,13 +197,21 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
         except Exception:  # noqa: BLE001
             pass
 
+    @staticmethod
+    def _audit_severity(event_type: str) -> str:
+        """Map event type to a severity marker."""
+        if any(k in event_type for k in ("expired", "failed", "error")):
+            return "WARN"
+        return "INFO"
+
     def _load_audit_log(self) -> None:
-        """Load recent audit log entries."""
+        """Load recent audit log entries with fixed-width columns."""
         try:
             from atlasbridge.tui.services import LogsService
 
             events = LogsService.read_recent(limit=20)
             log_widget = self.query_one("#audit-log", RichLog)
+            log_widget.clear()
             if not events:
                 log_widget.write("[dim]No audit events yet.[/dim]")
                 return
@@ -193,9 +221,35 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
                     ts = ts[11:16]  # HH:MM
                 etype = event.get("event_type", event.get("type", ""))
                 session = event.get("session_id", "")[:8]
-                log_widget.write(f"[dim]{ts}[/dim]  {etype:<24} {session}")
-        except Exception:  # noqa: BLE001
-            pass
+                severity = self._audit_severity(etype)
+                if severity == "WARN":
+                    sev_display = f"[yellow]{severity:<4}[/yellow]"
+                else:
+                    sev_display = f"[dim]{severity:<4}[/dim]"
+                log_widget.write(f"  {ts:<5}  {sev_display}  {etype:<24}  {session}")
+            # Track last event time
+            if events:
+                last_ts = events[-1].get("timestamp", "")
+                if last_ts and len(last_ts) > 16:
+                    self._last_event_time = last_ts[11:19]  # HH:MM:SS
+        except Exception as exc:  # noqa: BLE001
+            try:
+                log_widget = self.query_one("#audit-log", RichLog)
+                log_widget.clear()
+                log_widget.write(f"[red]Error loading audit log: {exc}[/red]")
+            except Exception:  # noqa: BLE001
+                pass
+
+    @staticmethod
+    def _doctor_icon(status: str) -> str:
+        """Return a Rich-formatted icon for a doctor check status."""
+        if status in ("ok", "pass"):
+            return "[green]PASS[/green]"
+        if status == "warn":
+            return "[yellow]WARN[/yellow]"
+        if status == "fail":
+            return "[red]FAIL[/red]"
+        return "[dim]SKIP[/dim]"
 
     def _refresh_doctor(self) -> None:
         """Run doctor checks and update the panel."""
@@ -203,22 +257,70 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
             from atlasbridge.tui.services import DoctorService
 
             checks = DoctorService.run_checks()
-            results_label = self.query_one("#doctor-results", Label)
+            self._doctor_results = checks
+            results_log = self.query_one("#doctor-results", RichLog)
+            results_log.clear()
             if not checks:
-                results_label.update("No checks available")
+                results_log.write("[dim]No checks available[/dim]")
                 return
-            parts = []
             for check in checks:
                 status = check.get("status", "unknown")
                 name = check.get("name", "?")
-                icon = "[green]OK[/green]" if status == "ok" else "[red]FAIL[/red]"
-                parts.append(f"{icon} {name}")
-            results_label.update("  ".join(parts))
+                detail = check.get("detail", "")
+                icon = self._doctor_icon(status)
+                results_log.write(f"  {icon}  {name:<20}  {detail}")
         except Exception as exc:  # noqa: BLE001
             try:
-                self.query_one("#doctor-results", Label).update(f"Error: {exc}")
+                results_log = self.query_one("#doctor-results", RichLog)
+                results_log.clear()
+                results_log.write(f"[red]Error: {exc}[/red]")
             except Exception:  # noqa: BLE001
                 pass
+
+    # ------------------------------------------------------------------
+    # Health banner + data paths
+    # ------------------------------------------------------------------
+
+    def _update_health_banner(
+        self, health: SystemHealth, *, error: str | None = None
+    ) -> None:
+        """Update the health state line below the safety banner."""
+        try:
+            label = self.query_one("#health-state", Label)
+            if error:
+                label.update(f"[RED]  Error: {error}  |  Last check: {self._last_poll_time}")
+            else:
+                tag = health.value.upper()
+                color = {"GREEN": "green", "YELLOW": "yellow", "RED": "red"}[tag]
+                text = {"GREEN": "All Healthy", "YELLOW": "Degraded", "RED": "Critical"}[
+                    tag
+                ]
+                parts = [f"[{color}][{tag}] {text}[/{color}]"]
+                if self._last_poll_time:
+                    parts.append(f"Last check: {self._last_poll_time}")
+                if self._last_event_time:
+                    parts.append(f"Last event: {self._last_event_time}")
+                label.update("  |  ".join(parts))
+            # Update CSS class for color theming
+            label.remove_class("health-green", "health-yellow", "health-red")
+            label.add_class(f"health-{health.value}")
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _show_data_paths(self) -> None:
+        """Display config/data paths (once on mount)."""
+        try:
+            from atlasbridge.core.config import atlasbridge_dir
+
+            cfg = atlasbridge_dir()
+            # Use ~ shorthand for home directory
+            display = str(cfg).replace(str(cfg.home()), "~")
+            db = "sessions.db"
+            log = "audit.log"
+            text = f"Config: {display}/  |  DB: {db}  |  Log: {log}"
+            self.query_one("#data-paths", Label).update(text)
+        except Exception:  # noqa: BLE001
+            pass
 
     # ------------------------------------------------------------------
     # Actions
@@ -236,12 +338,14 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
         self._do_poll()
 
     async def action_start_agent(self) -> None:
-        """Start agent with default tool."""
+        """Toggle agent: start if stopped, stop if running."""
         status = self._supervisor.agent_status()
         if status.running:
+            self.notify(f"Stopping agent ({status.tool})...")
             await self._supervisor.stop_agent()
             self.notify("Agent stopped")
         else:
+            self.notify(f"Starting agent ({self._default_tool})...")
             await self._supervisor.start_agent(tool=self._default_tool)
             self.notify(f"Agent started ({self._default_tool})")
         self._do_poll()
@@ -268,11 +372,13 @@ class ConsoleScreen(Screen):  # type: ignore[type-arg]
         self.notify("Refreshed")
 
     async def action_quit_console(self) -> None:
-        """Quit the console, offering to stop managed processes."""
+        """Quit the console, stopping managed processes first."""
         managed = [s for s in self._supervisor.all_status() if s.running]
         if managed:
+            names = ", ".join(s.name for s in managed)
+            self.notify(f"Stopping {names}...")
             await self._supervisor.shutdown_all()
-            self.notify("Stopped managed processes")
+            self.notify("All processes stopped")
         self.app.exit()
 
 

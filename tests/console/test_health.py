@@ -1,9 +1,12 @@
-"""Tests for SystemHealth enum and compute_health() logic."""
+"""Tests for SystemHealth enum, compute_health(), and display helpers."""
 
 from __future__ import annotations
 
+import inspect
+
 import pytest
 
+from atlasbridge.console.app import ConsoleApp, ConsoleScreen
 from atlasbridge.console.supervisor import ProcessInfo, SystemHealth, compute_health
 
 
@@ -97,3 +100,86 @@ class TestComputeHealthDoctor:
         ]
         checks = [{"name": "db", "status": "fail"}]
         assert compute_health(statuses, doctor_checks=checks) == SystemHealth.RED
+
+
+# ---------------------------------------------------------------------------
+# Console compose — new widget IDs
+# ---------------------------------------------------------------------------
+
+
+class TestConsoleComposeWidgets:
+    def test_health_state_in_compose(self):
+        """health-state widget ID must exist in compose."""
+        source = inspect.getsource(ConsoleScreen.compose)
+        assert "health-state" in source
+
+    def test_data_paths_in_compose(self):
+        """data-paths widget ID must exist in compose."""
+        source = inspect.getsource(ConsoleScreen.compose)
+        assert "data-paths" in source
+
+
+# ---------------------------------------------------------------------------
+# Audit severity mapping
+# ---------------------------------------------------------------------------
+
+
+class TestAuditSeverity:
+    def test_expired_is_warn(self):
+        assert ConsoleScreen._audit_severity("prompt_expired") == "WARN"
+
+    def test_failed_is_warn(self):
+        assert ConsoleScreen._audit_severity("inject_failed") == "WARN"
+
+    def test_error_is_warn(self):
+        assert ConsoleScreen._audit_severity("connection_error") == "WARN"
+
+    def test_normal_is_info(self):
+        assert ConsoleScreen._audit_severity("prompt_detected") == "INFO"
+
+    def test_empty_is_info(self):
+        assert ConsoleScreen._audit_severity("") == "INFO"
+
+
+# ---------------------------------------------------------------------------
+# Doctor icon formatting
+# ---------------------------------------------------------------------------
+
+
+class TestDoctorIcon:
+    def test_ok_shows_pass(self):
+        assert "PASS" in ConsoleScreen._doctor_icon("ok")
+
+    def test_pass_shows_pass(self):
+        assert "PASS" in ConsoleScreen._doctor_icon("pass")
+
+    def test_warn_shows_warn(self):
+        assert "WARN" in ConsoleScreen._doctor_icon("warn")
+
+    def test_fail_shows_fail(self):
+        assert "FAIL" in ConsoleScreen._doctor_icon("fail")
+
+    def test_unknown_shows_skip(self):
+        assert "SKIP" in ConsoleScreen._doctor_icon("unknown")
+
+
+# ---------------------------------------------------------------------------
+# CSS contains new selectors
+# ---------------------------------------------------------------------------
+
+
+class TestHealthCSS:
+    def test_health_state_in_css(self):
+        assert "#health-state" in ConsoleApp.CSS
+
+    def test_data_paths_in_css(self):
+        assert "#data-paths" in ConsoleApp.CSS
+
+    def test_health_green_class_in_css(self):
+        assert "health-green" in ConsoleApp.CSS
+
+    def test_health_yellow_class_in_css(self):
+        assert "health-yellow" in ConsoleApp.CSS
+
+    def test_health_red_class_in_css(self):
+        assert "health-red" in ConsoleApp.CSS

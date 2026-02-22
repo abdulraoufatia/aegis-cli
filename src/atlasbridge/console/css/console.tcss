@@ -20,10 +20,32 @@ Screen {
 #safety-banner {
     width: 100%;
     height: auto;
-    padding: 0 1;
-    background: $warning 20%;
+    padding: 0 2;
+    background: $warning 30%;
     color: $warning;
     text-style: bold;
+    border-bottom: solid $warning;
+}
+
+/* ── Health state line ────────────────────────────────────── */
+
+#health-state {
+    width: 100%;
+    height: auto;
+    padding: 0 2;
+}
+
+#health-state.health-green { color: $success; }
+#health-state.health-yellow { color: $warning; }
+#health-state.health-red { color: $error; text-style: bold; }
+
+/* ── Data paths ──────────────────────────────────────────── */
+
+#data-paths {
+    width: 100%;
+    height: auto;
+    padding: 0 2;
+    color: $text-muted;
     margin-bottom: 1;
 }
 
@@ -88,6 +110,7 @@ Screen {
 
 #doctor-results {
     height: auto;
+    max-height: 8;
 }
 
 /* ── Audit log ────────────────────────────────────────────── */
