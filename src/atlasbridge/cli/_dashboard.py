@@ -17,7 +17,7 @@ def dashboard_group() -> None:
     "--host",
     default="127.0.0.1",
     show_default=True,
-    help="Bind address (must be loopback)",
+    help="Bind address (default: loopback only)",
 )
 @click.option("--port", default=8787, show_default=True, help="Port to listen on")
 @click.option(
@@ -26,7 +26,16 @@ def dashboard_group() -> None:
     default=False,
     help="Do not open browser automatically",
 )
-def dashboard_start(host: str, port: int, no_browser: bool) -> None:
+@click.option(
+    "--i-understand-risk",
+    is_flag=True,
+    default=False,
+    hidden=True,
+    help="Allow binding to non-loopback addresses (DANGEROUS)",
+)
+def dashboard_start(
+    host: str, port: int, no_browser: bool, i_understand_risk: bool
+) -> None:
     """Start the local dashboard server."""
     # Guard: fastapi must be installed
     try:
@@ -40,13 +49,19 @@ def dashboard_start(host: str, port: int, no_browser: bool) -> None:
         )
         raise SystemExit(1) from exc
 
-    # Guard: host must be loopback
+    # Guard: host must be loopback unless risk is explicitly acknowledged
     from atlasbridge.dashboard.sanitize import is_loopback
 
-    if not is_loopback(host):
+    if not is_loopback(host) and not i_understand_risk:
         click.echo(
-            f"Error: Dashboard must bind to a loopback address for safety.\n"
-            f"Got: {host!r}. Use 127.0.0.1, ::1, or localhost.",
+            "Error: Binding to a non-loopback address exposes the dashboard "
+            "to your network.\n"
+            "The dashboard has NO authentication — anyone on the network can view "
+            "session data.\n\n"
+            "If you understand the risk and want to proceed, add:\n\n"
+            "  --i-understand-risk\n\n"
+            f"Got: --host {host!r}. Without the flag, only loopback "
+            "(127.0.0.1, ::1, localhost) is allowed.",
             err=True,
         )
         raise SystemExit(1)
@@ -54,7 +69,12 @@ def dashboard_start(host: str, port: int, no_browser: bool) -> None:
     from atlasbridge.dashboard.app import start_server
 
     click.echo(f"Starting dashboard at http://{host}:{port}")
-    start_server(host=host, port=port, open_browser=not no_browser)
+    start_server(
+        host=host,
+        port=port,
+        open_browser=not no_browser,
+        allow_non_loopback=i_understand_risk,
+    )
 
 
 @dashboard_group.command("status")

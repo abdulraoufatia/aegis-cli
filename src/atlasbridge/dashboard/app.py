@@ -272,9 +272,11 @@ def start_server(
     open_browser: bool = True,
     db_path: Path | None = None,
     trace_path: Path | None = None,
+    *,
+    allow_non_loopback: bool = False,
 ) -> None:
     """Start the dashboard server (blocking)."""
-    if not is_loopback(host):
+    if not is_loopback(host) and not allow_non_loopback:
         raise ValueError(
             f"Dashboard must bind to a loopback address for safety. "
             f"Got: {host!r}. Use 127.0.0.1, ::1, or localhost."
