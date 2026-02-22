@@ -139,7 +139,7 @@ def test_db_subcommands():
     assert db is not None, "db group missing"
     assert isinstance(db, click.Group)
 
-    expected = {"migrate"}
+    expected = {"archive", "info", "migrate"}
     actual = set(db.commands.keys())
     missing = expected - actual
     assert not missing, f"DB subcommands removed: {sorted(missing)}"

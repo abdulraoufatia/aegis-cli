@@ -89,6 +89,27 @@ class TestGuardedSend:
             await ch.guarded_send(_make_event())
 
     @pytest.mark.asyncio
+    async def test_circuit_rejection_logged(
+        self,
+        capsys: pytest.CaptureFixture[str],
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        import logging
+
+        ch = _FailingChannel(fail_count=10)
+        with caplog.at_level(logging.WARNING):
+            for _ in range(3):
+                with pytest.raises(ConnectionError):
+                    await ch.guarded_send(_make_event())
+
+            with pytest.raises(ChannelUnavailableError):
+                await ch.guarded_send(_make_event())
+
+        captured = capsys.readouterr()
+        log_output = captured.out + " ".join(r.message for r in caplog.records)
+        assert "circuit_breaker_rejected" in log_output
+
+    @pytest.mark.asyncio
     async def test_circuit_auto_recovers_after_cooldown(self) -> None:
         ch = _FailingChannel(fail_count=3)
         # Override recovery to very short for testing
@@ -146,13 +167,23 @@ class TestGuardedSend:
 
 
 class TestCircuitBreakerStateTransitions:
-    def test_closed_to_open_logged(self) -> None:
+    def test_closed_to_open_logged(
+        self, capsys: pytest.CaptureFixture[str], caplog: pytest.LogCaptureFixture
+    ) -> None:
         """Circuit breaker logs when transitioning to open state."""
+        import logging
+
         cb = ChannelCircuitBreaker(threshold=2, recovery_seconds=30.0)
-        cb.record_failure()
-        cb.record_failure()
-        # Should have logged 'circuit_breaker_opened' (verified by structlog capture)
+        with caplog.at_level(logging.WARNING):
+            cb.record_failure()
+            cb.record_failure()
         assert cb.is_open
+        # structlog may output to stdout or stdlib logging depending on config
+        captured = capsys.readouterr()
+        log_output = captured.out + " ".join(r.message for r in caplog.records)
+        assert "circuit_breaker_opened" in log_output, (
+            f"Expected 'circuit_breaker_opened' in log output, got: {log_output!r}"
+        )
 
     def test_configurable_threshold(self) -> None:
         cb = ChannelCircuitBreaker(threshold=5, recovery_seconds=10.0)
